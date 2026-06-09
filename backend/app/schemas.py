@@ -19,4 +19,4 @@ class RenderedWidget(BaseModel):
 
 class ConverseResponse(BaseModel):
     narration: str
-    widgets: list[Widget]
+    widgets: list[RenderedWidget]
