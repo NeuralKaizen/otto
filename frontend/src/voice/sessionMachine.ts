@@ -8,6 +8,7 @@ interface Reduction {
 }
 
 // El último transcript final visto en la sesión actual (lo necesita speechEnd).
+// TODO(plan-2): lift into a state struct for purity + multi-instance safety.
 let lastFinalTranscript = "";
 
 export function reduce(state: SessionState, event: SessionEvent): Reduction {
@@ -20,10 +21,11 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
           effects: [{ kind: "startListening" }, { kind: "armSilenceTimer" }],
         };
       }
-      return { state, effects: [] };
+      return { state, effects: [] }; // otros eventos sin sesión abierta: no-op
 
     case "listening":
       if (event.kind === "closingPhrase" || event.kind === "timeout") {
+        lastFinalTranscript = "";
         return {
           state: "idle",
           effects: [{ kind: "stopListening" }, { kind: "disarmSilenceTimer" }],
@@ -34,12 +36,14 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
         return { state, effects: [{ kind: "armSilenceTimer" }] };
       }
       if (event.kind === "speechEnd" && lastFinalTranscript) {
+        const text = lastFinalTranscript;
+        lastFinalTranscript = ""; // consumir: evita re-enviar la consulta anterior
         return {
           state: "processing",
           effects: [
             { kind: "stopListening" },
             { kind: "disarmSilenceTimer" },
-            { kind: "callConverse", text: lastFinalTranscript },
+            { kind: "callConverse", text },
           ],
         };
       }
@@ -63,6 +67,7 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
           state: "listening",
           effects: [
             { kind: "stopSpeaking" },
+            { kind: "disarmSilenceTimer" },
             { kind: "startListening" },
             { kind: "armSilenceTimer" },
           ],
@@ -71,7 +76,11 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
       if (event.kind === "ttsEnd") {
         return {
           state: "listening",
-          effects: [{ kind: "startListening" }, { kind: "armSilenceTimer" }],
+          effects: [
+            { kind: "disarmSilenceTimer" },
+            { kind: "startListening" },
+            { kind: "armSilenceTimer" },
+          ],
         };
       }
       return { state, effects: [] };

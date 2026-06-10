@@ -56,4 +56,14 @@ describe("sessionMachine", () => {
     expect(r.state).toBe("idle");
     expect(r.effects).toEqual([]);
   });
+
+  it("speechEnd espurio tras consumir el transcript NO re-dispara converse", () => {
+    // turno 1: transcript + speechEnd consumen "hola otto"
+    reduce("listening", { kind: "transcript", text: "hola otto", final: true });
+    reduce("listening", { kind: "speechEnd" });
+    // ahora un speechEnd sin nuevo transcript no debe llamar converse
+    const r = reduce("listening", { kind: "speechEnd" });
+    expect(r.state).toBe("listening");
+    expect(r.effects).toEqual([]);
+  });
 });
