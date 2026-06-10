@@ -19,6 +19,11 @@ interface Deps {
   silenceMs: number;
 }
 
+/**
+ * Interpreta la FSM de sesión contra los adaptadores de voz.
+ * IMPORTANTE: `deps` debe ser referencialmente estable (useMemo o módulo),
+ * si no, el wake detector se re-suscribe en cada render.
+ */
 export function useSession(deps: Deps) {
   const [state, setState] = useState<SessionState>(initialState);
   const [caption, setCaption] = useState("");
@@ -68,9 +73,11 @@ export function useSession(deps: Deps) {
             setWidgets(eff.widgets);
             break;
           case "callConverse":
-            deps.converse(eff.text).then((r) =>
-              dispatchRef.current({ kind: "response", narration: r.narration, widgets: r.widgets }),
-            );
+            deps.converse(eff.text)
+              .then((r) =>
+                dispatchRef.current({ kind: "response", narration: r.narration, widgets: r.widgets }),
+              )
+              .catch(() => dispatchRef.current({ kind: "converseFailed" }));
             break;
           case "armSilenceTimer":
             if (silenceTimer.current) clearTimeout(silenceTimer.current);
@@ -105,7 +112,10 @@ export function useSession(deps: Deps) {
 
   useEffect(() => {
     deps.wake.start(() => dispatch({ kind: "wakeDetected" }));
-    return () => deps.wake.stop();
+    return () => {
+      deps.wake.stop();
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+    };
   }, [deps, dispatch]);
 
   return useMemo(

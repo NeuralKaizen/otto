@@ -35,6 +35,20 @@ describe("useSession", () => {
     await waitFor(() => expect(result.current.state).toBe("listening"));
   });
 
+  it("si converse rechaza, vuelve a listening (no queda pegado en processing)", async () => {
+    const wake = new FakeWakeWord();
+    const stt = new FakeTranscriber();
+    const tts = new FakeSpeaker();
+    const converse = vi.fn().mockRejectedValue(new Error("boom"));
+    const { result } = renderHook(() =>
+      useSession({ wake, stt, tts, converse, closingPhrase: "listo", silenceMs: 30000 }),
+    );
+    act(() => wake.trigger());
+    act(() => stt.emit("algo", true));
+    await waitFor(() => expect(converse).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.state).toBe("listening"));
+  });
+
   it("frase de cierre cierra la sesión", () => {
     const { result, wake, stt } = setup();
     act(() => wake.trigger());

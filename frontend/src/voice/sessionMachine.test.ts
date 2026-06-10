@@ -57,6 +57,12 @@ describe("sessionMachine", () => {
     expect(r.effects).toEqual([]);
   });
 
+  it("processing + converseFailed -> listening (vuelve a escuchar)", () => {
+    const r = reduce("processing", { kind: "converseFailed" });
+    expect(r.state).toBe("listening");
+    expect(r.effects).toContainEqual({ kind: "startListening" });
+  });
+
   it("speechEnd espurio tras consumir el transcript NO re-dispara converse", () => {
     // turno 1: transcript + speechEnd consumen "hola otto"
     reduce("listening", { kind: "transcript", text: "hola otto", final: true });

@@ -59,6 +59,12 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
           ],
         };
       }
+      if (event.kind === "converseFailed") {
+        return {
+          state: "listening",
+          effects: [{ kind: "startListening" }, { kind: "armSilenceTimer" }],
+        };
+      }
       return { state, effects: [] };
 
     case "speaking":

@@ -14,7 +14,8 @@ export type SessionEvent =
   | { kind: "bargeIn" }             // el usuario habla mientras Otto habla
   | { kind: "response"; narration: string; widgets: RenderedWidget[] }
   | { kind: "ttsEnd" }
-  | { kind: "timeout" };            // silencio largo de seguridad
+  | { kind: "timeout" }            // silencio largo de seguridad
+  | { kind: "converseFailed" };      // /converse falló: volver a escuchar
 
 export interface RenderedWidget {
   type: string;
