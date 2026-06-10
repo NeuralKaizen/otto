@@ -1,0 +1,17 @@
+.hud { min-height: 100vh; background: #02060f; color: #cfe8ff; display: grid;
+  grid-template-rows: 1fr auto auto; gap: 1rem; padding: 2rem; font-family: system-ui; }
+.hud-core { display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+.core-orb { width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, #3fa9ff, #0a3d7a); transition: transform .1s ease; }
+.core-idle .core-orb { opacity: .3; }
+.core-state { text-transform: uppercase; letter-spacing: .2em; font-size: .75rem; }
+.hud-canvas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+.widget { background: #0a1424; border: 1px solid #1d3a5f; border-radius: 8px;
+  padding: 1rem; min-width: 160px; }
+.widget-title { font-size: .75rem; opacity: .7; }
+.kpi-value { font-size: 2.5rem; font-weight: 700; }
+.widget-empty { opacity: .5; }
+.hud-captions { text-align: center; }
+.demo-badge { background: #5a3d00; color: #ffd479; padding: .15rem .5rem;
+  border-radius: 4px; font-size: .7rem; margin-right: .5rem; }
+table { border-collapse: collapse; } td, th { border: 1px solid #1d3a5f; padding: .25rem .5rem; }
