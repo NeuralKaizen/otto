@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+# Otto — frontend (panel general / HUD voz-reactivo)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web canvas "Jarvis" de Otto: hablás, el HUD reacciona, Otto narra y pinta widgets.
+React + Vite + TypeScript, sin frameworks de UI — la escena es un canvas 2D propio.
 
-Currently, two official plugins are available:
+## Correr
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev     # http://localhost:5173 (necesita el backend en :8000 para /converse)
+npm test        # FSM, adaptadores, registro de widgets
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Modo vitrina (diseño / QA sin micrófono)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+`?hud=<estado>` fuerza el estado visual con contenido demo:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `/?hud=idle` — reposo: núcleo azul hielo + wordmark OTTO en partículas
+- `/?hud=listening` — ignición dorada, sesión abierta
+- `/?hud=processing` — ciclón cian, pensando
+- `/?hud=speaking` — ámbar pulsante + paneles de datos demo
+
+## Mapa rápido
+
+| Carpeta | Qué vive ahí |
+|---|---|
+| `src/voice/` | FSM de sesión (lógica pura) + adaptadores swappables (wake/STT/TTS) |
+| `src/hud/scene/` | Motor de partículas del panel (núcleo, anillo, polvo, wordmark) |
+| `src/hud/` | Chrome del HUD, subtítulos, canvas de widgets |
+| `src/hud/widgets/` | Registro de widgets de UI generativa (`kpi_card`, `table`, …) |
+| `src/api/` | Cliente de `/converse` |
+
+La escena entera reacciona al estado de la sesión (`data-state` + `OttoScene`):
+el color de acento, el espectro, el núcleo y el wordmark cambian juntos.
+La amplitud real de mic/TTS entra por la prop `amplitude` de `OttoScene`
+(hoy el motor genera una envolvente ambiente propia).
