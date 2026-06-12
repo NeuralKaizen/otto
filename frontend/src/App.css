@@ -52,6 +52,30 @@
   z-index: 2;
 }
 
+/* en reposo todo se apaga; el despertar lo enciende */
+.hud::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(1, 2, 5, 0.45);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  z-index: 2;
+}
+
+.hud[data-state="idle"]::before {
+  opacity: 1;
+}
+
+.hud-chrome {
+  transition: opacity 0.9s ease;
+}
+
+.hud[data-state="idle"] .hud-chrome {
+  opacity: 0.45;
+}
+
 .hud-grain {
   position: absolute;
   inset: -50%;
