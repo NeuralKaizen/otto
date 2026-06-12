@@ -3,7 +3,7 @@ La interfaz Brain.compose(text) -> UiSpec aísla al resto del cerebro concreto."
 import json
 import os
 from typing import Protocol
-from app.schemas import UiSpec
+from app.schemas import UiSpec, Widget
 
 SYSTEM_PROMPT = (
     "Sos Otto, un agente de consulta y display. Dada la pregunta del usuario, "
@@ -42,3 +42,28 @@ class ClaudeBrain:
         )
         raw = msg.content[0].text
         return UiSpec.model_validate(json.loads(raw))
+
+class DemoBrain:
+    """Fallback sin ANTHROPIC_API_KEY (p. ej. el deploy demo): compone un
+    spec razonable por keywords. Mismo contrato; cero números inventados —
+    los datos siguen saliendo del registro de queries."""
+
+    def compose(self, text: str) -> UiSpec:
+        t = text.lower()
+        widgets = [Widget(type="kpi_card", query="tasks_active", title="Activas")]
+        if "atrasad" in t or "tarde" in t or "overdue" in t:
+            widgets = [
+                Widget(type="kpi_card", query="tasks_overdue", title="Atrasadas"),
+                Widget(type="table", query="tasks_by_person", title="Por persona"),
+            ]
+        elif "person" in t or "equipo" in t or "quien" in t or "quién" in t:
+            widgets = [Widget(type="table", query="tasks_by_person", title="Por persona")]
+        elif "tarea" in t or "activa" in t or "hoy" in t or "viene" in t:
+            widgets = [
+                Widget(type="kpi_card", query="tasks_active", title="Activas"),
+                Widget(type="kpi_card", query="tasks_overdue", title="Atrasadas"),
+            ]
+        return UiSpec(
+            narration="Modo demo sin cerebro conectado. Esto es lo que tengo a mano.",
+            widgets=widgets,
+        )

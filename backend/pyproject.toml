@@ -1,3 +1,21 @@
+[project]
+name = "otto-backend"
+version = "0.1.0"
+description = "Gateway delgado de Otto: /converse → Claude + registro de queries"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "anthropic",
+    "uvicorn",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
