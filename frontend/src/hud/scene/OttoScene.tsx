@@ -1,29 +1,45 @@
 import { useEffect, useRef } from "react";
 import type { SessionState } from "../../voice/types";
-import { OttoEngine } from "./engine";
+import { OttoGLEngine } from "./glengine";
 
-// Escena full-viewport del panel: un canvas, un motor, cero re-renders por
-// frame. `amplitude` queda como entrada para la amplitud real (mic/TTS);
-// mientras tanto el motor genera su propia envolvente ambiente.
-export function OttoScene({ state, amplitude = 0 }: { state: SessionState; amplitude?: number }) {
+// Escena WebGL2 full-viewport. `getAmplitude` entrega la amplitud real de
+// voz (mic via Web Audio) sin provocar re-renders; el motor la mezcla con
+// su envolvente ambiente.
+export function OttoScene({
+  state,
+  getAmplitude,
+}: {
+  state: SessionState;
+  getAmplitude?: () => number;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<OttoEngine | null>(null);
-  const ampRef = useRef(0);
+  const engineRef = useRef<OttoGLEngine | null>(null);
+  const ampRef = useRef<(() => number) | undefined>(undefined);
 
   useEffect(() => {
-    ampRef.current = amplitude;
-  }, [amplitude]);
+    ampRef.current = getAmplitude;
+  }, [getAmplitude]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return; // jsdom / entorno sin canvas: la escena se apaga sola
+    const gl = canvas.getContext("webgl2", {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      powerPreference: "high-performance",
+    });
+    if (!gl) return; // jsdom / GPU vetada: la escena se apaga sola
 
-    const engine = new OttoEngine();
+    let engine: OttoGLEngine;
+    try {
+      engine = new OttoGLEngine(gl);
+    } catch {
+      return; // shader no compiló en este driver: no tumbar la app
+    }
     engineRef.current = engine;
     if (import.meta.env.DEV) {
-      (window as unknown as { __ottoEngine?: OttoEngine }).__ottoEngine = engine;
+      (window as unknown as { __ottoEngine?: OttoGLEngine }).__ottoEngine = engine;
     }
 
     const media = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
@@ -31,24 +47,24 @@ export function OttoScene({ state, amplitude = 0 }: { state: SessionState; ampli
     syncMotion();
     media?.addEventListener?.("change", syncMotion);
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      engine.resize(window.innerWidth, window.innerHeight);
+      canvas.width = Math.round(window.innerWidth * dpr);
+      canvas.height = Math.round(window.innerHeight * dpr);
+      engine.resize(canvas.width, canvas.height);
     };
     resize();
     window.addEventListener("resize", resize);
-    // El wordmark se muestrea con la fuente display; re-muestrear al cargarla
-    document.fonts?.ready?.then(() => engine.resize(window.innerWidth, window.innerHeight));
+    document.fonts?.ready?.then(() => {
+      if (engineRef.current === engine) resize();
+    });
 
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      engine.frame(ctx, dt, now / 1000, ampRef.current);
+      engine.frame(dt, now / 1000, ampRef.current?.() ?? 0);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

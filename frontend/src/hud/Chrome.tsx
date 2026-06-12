@@ -8,13 +8,6 @@ const LABEL: Record<SessionState, string> = {
   speaking: "hablando",
 };
 
-const HINT: Record<SessionState, string> = {
-  idle: "decí «otto» para activarme",
-  listening: "sesión abierta — hablá libre",
-  processing: "consultando el cerebro",
-  speaking: "narrando — hablá para interrumpir",
-};
-
 function Clock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -27,9 +20,6 @@ function Clock() {
     </span>
   );
 }
-
-// Barras decorativas tipo espectro; el ritmo lo maneja CSS por estado.
-const BARS = Array.from({ length: 22 }, (_, i) => i);
 
 export function Chrome({ state, voiceOk = true }: { state: SessionState; voiceOk?: boolean }) {
   return (
@@ -49,43 +39,12 @@ export function Chrome({ state, voiceOk = true }: { state: SessionState; voiceOk
           <span className="state-label">{LABEL[state]}</span>
         </div>
         <div className="chrome-meta">
+          {!voiceOk && <span className="meta-novoice">sin voz · abrí en chrome</span>}
+          <span className="meta-hint">espacio · demo</span>
           <span className="meta-demo">datos de demostración</span>
           <Clock />
         </div>
       </header>
-
-      <div className="chrome-readout">
-        <div className="readout-row">
-          <span className="readout-key">estado</span>
-          <span className="readout-val">{LABEL[state]}</span>
-        </div>
-        <div className="readout-row">
-          <span className="readout-key">mic</span>
-          <span className="readout-val">
-            {voiceOk ? (state === "idle" ? "standby" : "abierto") : "sin soporte"}
-          </span>
-        </div>
-        <div className="readout-row">
-          <span className="readout-key">cerebro</span>
-          <span className="readout-val">claude · api</span>
-        </div>
-        <div className="readout-hint">
-          {voiceOk ? HINT[state] : "este navegador no soporta voz — abrí en chrome o edge"}
-        </div>
-      </div>
-
-      <div className="chrome-spectrum">
-        {BARS.map((i) => (
-          <span
-            key={i}
-            className="spectrum-bar"
-            style={{
-              animationDelay: `${(i * 137) % 900}ms`,
-              animationDuration: `${700 + ((i * 263) % 600)}ms`,
-            }}
-          />
-        ))}
-      </div>
     </div>
   );
 }
