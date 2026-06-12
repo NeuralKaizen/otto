@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import type { SessionState, RenderedWidget } from "./voice/types";
 import { useSession } from "./voice/useSession";
-import { WebSpeechWakeWord, WebSpeechTranscriber } from "./voice/adapters/webSpeech";
+import {
+  WebSpeechWakeWord,
+  WebSpeechTranscriber,
+  speechRecognitionSupported,
+} from "./voice/adapters/webSpeech";
 import { SpeechSynthesisSpeaker } from "./voice/adapters/speechSynthesis";
 import { callConverse } from "./api/converse";
 import { OttoScene } from "./hud/scene/OttoScene";
@@ -68,7 +72,7 @@ export default function App() {
       <OttoScene state={state} />
       <div className="hud-vignette" aria-hidden="true" />
       <div className="hud-grain" aria-hidden="true" />
-      <Chrome state={state} />
+      <Chrome state={state} voiceOk={speechRecognitionSupported} />
       <main className="hud-stage">
         <Canvas widgets={widgets} />
         <Captions text={caption} />

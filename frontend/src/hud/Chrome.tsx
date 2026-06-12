@@ -31,7 +31,7 @@ function Clock() {
 // Barras decorativas tipo espectro; el ritmo lo maneja CSS por estado.
 const BARS = Array.from({ length: 22 }, (_, i) => i);
 
-export function Chrome({ state }: { state: SessionState }) {
+export function Chrome({ state, voiceOk = true }: { state: SessionState; voiceOk?: boolean }) {
   return (
     <div className="hud-chrome" aria-hidden="true">
       <span className="frame-corner corner-tl" />
@@ -61,13 +61,17 @@ export function Chrome({ state }: { state: SessionState }) {
         </div>
         <div className="readout-row">
           <span className="readout-key">mic</span>
-          <span className="readout-val">{state === "idle" ? "standby" : "abierto"}</span>
+          <span className="readout-val">
+            {voiceOk ? (state === "idle" ? "standby" : "abierto") : "sin soporte"}
+          </span>
         </div>
         <div className="readout-row">
           <span className="readout-key">cerebro</span>
           <span className="readout-val">claude · api</span>
         </div>
-        <div className="readout-hint">{HINT[state]}</div>
+        <div className="readout-hint">
+          {voiceOk ? HINT[state] : "este navegador no soporta voz — abrí en chrome o edge"}
+        </div>
       </div>
 
       <div className="chrome-spectrum">
