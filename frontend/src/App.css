@@ -10,28 +10,28 @@
   overflow: hidden;
   background:
     radial-gradient(120% 90% at 50% 30%, #071019 0%, #040810 48%, #02050a 100%);
-  --accent: #9fc3ff;
-  --accent-soft: rgba(159, 195, 255, 0.16);
-  --accent-line: rgba(159, 195, 255, 0.35);
+  --accent: #28C8B4;
+  --accent-soft: rgba(40, 200, 180, 0.16);
+  --accent-line: rgba(40, 200, 180, 0.35);
   transition: --accent 0.6s;
 }
 
 .hud[data-state="listening"] {
-  --accent: #ffc66b;
-  --accent-soft: rgba(255, 198, 107, 0.16);
-  --accent-line: rgba(255, 198, 107, 0.4);
+  --accent: #50E696;
+  --accent-soft: rgba(80, 230, 150, 0.16);
+  --accent-line: rgba(80, 230, 150, 0.4);
 }
 
 .hud[data-state="processing"] {
-  --accent: #6fe3ff;
-  --accent-soft: rgba(111, 227, 255, 0.14);
-  --accent-line: rgba(111, 227, 255, 0.4);
+  --accent: #8C78FF;
+  --accent-soft: rgba(140, 120, 255, 0.14);
+  --accent-line: rgba(140, 120, 255, 0.4);
 }
 
 .hud[data-state="speaking"] {
-  --accent: #ffb377;
-  --accent-soft: rgba(255, 179, 119, 0.16);
-  --accent-line: rgba(255, 179, 119, 0.4);
+  --accent: #46E0A0;
+  --accent-soft: rgba(70, 224, 160, 0.16);
+  --accent-line: rgba(70, 224, 160, 0.4);
 }
 
 .otto-scene {

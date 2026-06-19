@@ -20,11 +20,14 @@ const MAX_EDGES = 4200;
 const WORD = "OTTO";
 
 type RGB = [number, number, number];
-const PALETTE: Record<SessionState, { base: RGB; lo: RGB; hi: RGB }> = {
-  idle: { base: [125, 175, 255], lo: [70, 115, 230], hi: [225, 240, 255] },
-  listening: { base: [255, 190, 60], lo: [255, 120, 10], hi: [255, 246, 205] },
-  processing: { base: [60, 222, 255], lo: [0, 160, 255], hi: [222, 252, 255] },
-  speaking: { base: [255, 150, 50], lo: [255, 90, 20], hi: [255, 226, 175] },
+type World = Record<SessionState, { base: RGB; lo: RGB; hi: RGB }>;
+
+// Paleta Aurora — teal + violeta + verde + rosa, fluido tipo aurora boreal.
+const PALETTE: World = {
+  idle:       { base: [40, 200, 180],  lo: [20, 90, 130],   hi: [150, 120, 255] },
+  listening:  { base: [80, 230, 150],  lo: [30, 180, 180],  hi: [255, 150, 220] },
+  processing: { base: [140, 120, 255], lo: [40, 200, 190],  hi: [120, 255, 180] },
+  speaking:   { base: [70, 230, 160],  lo: [150, 110, 240], hi: [120, 240, 230] },
 };
 
 // forma por estado: 0 = cielo, 1 = esfera, 2 = anillo
@@ -473,7 +476,7 @@ export class OttoGLEngine {
     const pts: number[] = [];
     const step = Math.max(3, Math.round(fontSize / 38));
     const { x: cx, y: cy } = this.center;
-    const yBase = cy + this.R * 1.85 - off.height / 2;
+    const yBase = cy + this.R * 1.35 - off.height / 2;
     for (let y = 0; y < off.height; y += step) {
       for (let x = 0; x < off.width; x += step) {
         if (data[(y * off.width + x) * 4 + 3] > 128) {
