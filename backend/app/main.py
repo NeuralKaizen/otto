@@ -22,8 +22,14 @@ def set_brain(brain: Brain) -> None:
 def get_brain() -> Brain:
     global _brain
     if _brain is None:
-        from app.brain import ClaudeBrain
-        _brain = ClaudeBrain()
+        import os
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            from app.brain import ClaudeBrain
+            _brain = ClaudeBrain()
+        else:
+            # Deploy demo sin key: el loop de voz sigue vivo con spec demo
+            from app.brain import DemoBrain
+            _brain = DemoBrain()
     return _brain
 
 @app.get("/health")

@@ -1,6 +1,8 @@
 import type { RenderedWidget } from "../voice/types";
 
-const BASE = "http://localhost:8000";
+// En dev el backend corre aparte en :8000; en producción (Vercel) el
+// service FastAPI vive same-origin bajo /_/backend (ver vercel.json).
+const BASE = import.meta.env.DEV ? "http://localhost:8000" : "/_/backend";
 
 export interface ConverseResult {
   narration: string;
