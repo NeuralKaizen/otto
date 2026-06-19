@@ -430,7 +430,13 @@ export class OttoGLEngine {
     const maxDeg = 4;
     const thresh2 = 0.0021; // chord² ≈ vecinos inmediatos en 11.5k puntos
     let e = 0;
-    outer: for (let i = 0; i < ns; i++) {
+    // Recorrer en orden áureo ENTRELAZADO (no por latitud): el índice fibonacci
+    // crece monótono con la latitud, así que iterar 0..ns secuencialmente agota
+    // el presupuesto MAX_EDGES en un casquete polar y deja el resto de la esfera
+    // sin aristas. El stride áureo visita todas las latitudes intercaladas → las
+    // aristas se reparten parejo por TODA la esfera con el mismo presupuesto.
+    const stride = Math.round(ns * 0.6180339887) | 1;
+    outer: for (let k = 0, i = 0; k < ns; k++, i = (i + stride) % ns) {
       if (deg[i] >= maxDeg) continue;
       const y = this.dir[i * 3 + 1];
       const th = Math.atan2(this.dir[i * 3 + 2], this.dir[i * 3]);
