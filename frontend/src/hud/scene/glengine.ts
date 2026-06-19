@@ -15,7 +15,7 @@ import type { SessionState } from "../../voice/types";
 // ondas de choque — todo reactivo al estado y a la amplitud de voz.
 
 const N = 14000;
-const SHELL = 0.82; // fracción de la esfera en cáscara (el resto, volumen)
+const SHELL = 0.9;  // fracción de la esfera en cáscara (el resto, volumen)
 const MAX_EDGES = 4200;
 const WORD = "OTTO";
 
@@ -259,6 +259,8 @@ export class OttoGLEngine {
   private rotY = 0;
   private snap = 0;  // dureza de transición (stiffness extra), decae
   private flash = 0;
+  private breath = 0; // envolvente lenta de respiración (0..1)
+  private spikeMask = new Float32Array(N); // ~8% de cáscara: 1 = punta activa
   private waves: Wave[] = [];
   private waveCooldown = 0;
 
@@ -339,17 +341,40 @@ export class OttoGLEngine {
     this.buildEdges();
   }
 
+  // Ruido de valor barato: hash determinista de la dirección redondeada.
+  // Devuelve un valor en [0, 1]. Sin deps externas, sin imports.
+  private dirNoise(dx: number, dy: number, dz: number): number {
+    // Redondear a grid de 0.15 unidades para que partículas vecinas
+    // compartan el mismo valor → "continentes" de 3-4 celdas de ancho.
+    const gx = Math.round(dx * 6.67);
+    const gy = Math.round(dy * 6.67);
+    const gz = Math.round(dz * 6.67);
+    // hash entero de 3 componentes → fract
+    const h = Math.sin(gx * 127.1 + gy * 311.7 + gz * 74.9) * 43758.5453;
+    return h - Math.floor(h);
+  }
+
   private initParticles() {
     // direcciones fibonacci → cobertura pareja de la esfera
     const ga = Math.PI * (3 - Math.sqrt(5));
     const ns = Math.floor(N * SHELL);
+    // Cuenta de candidatas a espiga para calcular ~8%
+    let shellCount = 0;
     for (let i = 0; i < N; i++) {
       let y: number, r: number, th: number;
       if (i < ns) {
         y = 1 - (i / (ns - 1)) * 2;
         r = Math.sqrt(Math.max(0, 1 - y * y));
         th = ga * i;
-        this.sphR[i] = 0.94 + Math.random() * 0.08;
+        const baseR = 0.94 + Math.random() * 0.08;
+        const dx = r * Math.cos(th);
+        const dz = r * Math.sin(th);
+        // Asimetría: multiplicar por 1 + 0.35*noise (noise ∈ [0,1]).
+        // Así el radio nunca baja del base (mínimo ×1.0, máximo ×1.35),
+        // lo que garantiza que toda cáscara quede > 0.9 (umbral shell).
+        const noise = this.dirNoise(dx, y, dz);
+        this.sphR[i] = baseR * (1 + 0.35 * noise);
+        shellCount++;
       } else {
         // volumen interior: el cuerpo se siente macizo
         y = Math.random() * 2 - 1;
@@ -374,6 +399,18 @@ export class OttoGLEngine {
       this.cr[i] = cr; this.cg[i] = cg; this.cb[i] = cb;
       this.tr[i] = cr; this.tg[i] = cg; this.tb[i] = cb;
     }
+
+    // Máscara de púas: ~8% de partículas de cáscara se marcan como activas.
+    // Patrón fijo por partícula (determinista vía seed implícita del índice).
+    const spikeTarget = Math.round(shellCount * 0.08);
+    let spikeSet = 0;
+    for (let i = 0; i < ns && spikeSet < spikeTarget; i++) {
+      // Selección pseudo-aleatoria basada en el índice (sin Math.random extra).
+      if (((i * 2654435761) >>> 0) % 13 === 0) {
+        this.spikeMask[i] = 1;
+        spikeSet++;
+      }
+    }
   }
 
   // vecinos en la cáscara via grid esférico → aristas del grafo
@@ -395,10 +432,12 @@ export class OttoGLEngine {
       arr.push(i);
     }
     const deg = new Uint8Array(ns);
+    // Subir umbral de grado 3→4 para más conexiones y textura de circuito
+    const maxDeg = 4;
     const thresh2 = 0.0021; // chord² ≈ vecinos inmediatos en 11.5k puntos
     let e = 0;
     outer: for (let i = 0; i < ns; i++) {
-      if (deg[i] >= 3) continue;
+      if (deg[i] >= maxDeg) continue;
       const y = this.dir[i * 3 + 1];
       const th = Math.atan2(this.dir[i * 3 + 2], this.dir[i * 3]);
       const a0 = Math.floor(((y + 1) / 2) * (B - 1));
@@ -408,7 +447,7 @@ export class OttoGLEngine {
           const arr = cells.get((a0 + da) * B + ((b0 + db + B) % B));
           if (!arr) continue;
           for (const j of arr) {
-            if (j <= i || deg[j] >= 3) continue;
+            if (j <= i || deg[j] >= maxDeg) continue;
             const dx = this.dir[i * 3] - this.dir[j * 3];
             const dy = this.dir[i * 3 + 1] - this.dir[j * 3 + 1];
             const dz = this.dir[i * 3 + 2] - this.dir[j * 3 + 2];
@@ -423,11 +462,11 @@ export class OttoGLEngine {
               this.edgeFSp[e] = 2 + Math.random() * 6;
               deg[i]++; deg[j]++;
               if (++e >= MAX_EDGES) break outer;
-              if (deg[i] >= 3) break;
+              if (deg[i] >= maxDeg) break;
             }
           }
         }
-        if (deg[i] >= 3) break;
+        if (deg[i] >= maxDeg) break;
       }
     }
     this.edgeCount = e;
@@ -549,6 +588,10 @@ export class OttoGLEngine {
     const motion = this.reducedMotion ? 0.3 : 1;
     this.rotY += this.curP.rot * dt * motion;
 
+    // Respiración: ciclo lento sinusoidal; más lento con reducedMotion
+    const breathSpeed = this.reducedMotion ? 0.25 : 0.6;
+    this.breath = 0.5 + 0.5 * Math.sin(t * breathSpeed);
+
     this.simulate(dt, t, amp, motion);
 
     // ---- draw ----
@@ -651,7 +694,10 @@ export class OttoGLEngine {
     const Ly = 0.55;
     const Lz = -Math.cos(t * 0.25) * 0.62;
     const ringSpin = this.curP.spin * (this.reducedMotion ? 0.6 : 2.2);
-    const ampR = 1 + amp * 0.17 + this.flash * 0.05;
+    // Respiración: expansión/contracción suave; atenuada con reducedMotion
+    const breathScale = this.reducedMotion ? 0.3 : 1.0;
+    let ampR = 1 + amp * 0.17 + this.flash * 0.05;
+    ampR *= 1 + this.breath * 0.04 * breathScale;
     const sizeBoost = (1 + this.flash * 0.5) * (1 + amp * 0.18);
     const bodyA = this.curP.body;
     const skyMix = this.curP.sky;
@@ -693,10 +739,15 @@ export class OttoGLEngine {
           const lat = Math.acos(Math.max(-1, Math.min(1, dy)));
           rad += Math.sin(lat * 7 - t * 11) * amp * R * 0.06;
         }
+        const shell = this.sphR[i] > 0.9;
+        // Púas radiales: cáscara marcada se eriza con la voz; atenuado con reducedMotion
+        if (shell && this.spikeMask[i] > 0) {
+          const spikeAtten = this.reducedMotion ? 0.3 : 1.0;
+          rad += amp * R * 0.12 * this.spikeMask[i] * spikeAtten;
+        }
         tx = rx * rad;
         ty = dy * rad;
         tz = rz * rad;
-        const shell = this.sphR[i] > 0.9;
         const diff = 0.4 + 0.6 * Math.max(0, rx * Lx + dy * Ly + rz * Lz);
         const rim = Math.pow(1 - Math.abs(rz), 2.2) * 0.85;
         bright = (diff + rim) * (shell ? 1.15 : 0.7);
@@ -781,7 +832,7 @@ export class OttoGLEngine {
         const spark = this.curP.fire > 0.02 && !this.reducedMotion
           ? Math.pow(Math.max(0, Math.sin(t * this.edgeFSp[e] + this.edgeFPh[e])), 28) * this.curP.fire
           : 0;
-        alpha = base * stretch * (0.16 + 0.4 * pulse + amp * 0.3) + spark * 0.85;
+        alpha = base * stretch * (0.22 + 0.48 * pulse + amp * 0.35) + spark * 0.85;
         const m = spark;
         sr = (p0[0] + (hi[0] - p0[0]) * m) / 255;
         sg = (p0[1] + (hi[1] - p0[1]) * m) / 255;
