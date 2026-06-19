@@ -358,8 +358,6 @@ export class OttoGLEngine {
     // direcciones fibonacci → cobertura pareja de la esfera
     const ga = Math.PI * (3 - Math.sqrt(5));
     const ns = Math.floor(N * SHELL);
-    // Cuenta de candidatas a espiga para calcular ~8%
-    let shellCount = 0;
     for (let i = 0; i < N; i++) {
       let y: number, r: number, th: number;
       if (i < ns) {
@@ -370,11 +368,12 @@ export class OttoGLEngine {
         const dx = r * Math.cos(th);
         const dz = r * Math.sin(th);
         // Asimetría: multiplicar por 1 + 0.35*noise (noise ∈ [0,1]).
-        // Así el radio nunca baja del base (mínimo ×1.0, máximo ×1.35),
-        // lo que garantiza que toda cáscara quede > 0.9 (umbral shell).
+        // Invariante: piso de cáscara (0.94) × multiplicador mínimo (≥1.0)
+        // debe permanecer > 0.9 (umbral shell-detection en simulate).
+        // Si SHELL, el piso (0.94) o el umbral (0.9) cambian, verificar que
+        // sphR de cáscara siga siendo > 0.9 tras la perturbación asimétrica.
         const noise = this.dirNoise(dx, y, dz);
         this.sphR[i] = baseR * (1 + 0.35 * noise);
-        shellCount++;
       } else {
         // volumen interior: el cuerpo se siente macizo
         y = Math.random() * 2 - 1;
@@ -400,16 +399,11 @@ export class OttoGLEngine {
       this.tr[i] = cr; this.tg[i] = cg; this.tb[i] = cb;
     }
 
-    // Máscara de púas: ~8% de partículas de cáscara se marcan como activas.
-    // Patrón fijo por partícula (determinista vía seed implícita del índice).
-    const spikeTarget = Math.round(shellCount * 0.08);
-    let spikeSet = 0;
-    for (let i = 0; i < ns && spikeSet < spikeTarget; i++) {
-      // Selección pseudo-aleatoria basada en el índice (sin Math.random extra).
-      if (((i * 2654435761) >>> 0) % 13 === 0) {
-        this.spikeMask[i] = 1;
-        spikeSet++;
-      }
+    // Máscara de púas: ~1/13 ≈ 7.7% de partículas de cáscara se marcan como activas.
+    // Hash determinista sobre TODOS los índices → cobertura espacial uniforme
+    // (sin early-exit: evita la concentración hemisférica que ocurría antes).
+    for (let i = 0; i < ns; i++) {
+      this.spikeMask[i] = (((i * 2654435761) >>> 0) % 13 === 0) ? 1 : 0;
     }
   }
 
