@@ -765,7 +765,6 @@ export class OttoGLEngine {
     const Lx = Math.sin(t * 0.25) * 0.62;
     const Ly = 0.55;
     const Lz = -Math.cos(t * 0.25) * 0.62;
-    const ringSpin = this.curP.spin * (this.reducedMotion ? 0.6 : 2.2);
     // Respiración: expansión/contracción suave; atenuada con reducedMotion
     const breathScale = this.reducedMotion ? 0.3 : 1.0;
     let ampR = 1 + amp * 0.17 + this.flash * 0.05;
