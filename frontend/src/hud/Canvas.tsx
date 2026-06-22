@@ -52,16 +52,16 @@ function kpiSlotStyle(index: number, total: number): SlotStyle {
   const rad = degToRad(deg);
   const tx = CARD_RADIUS * Math.sin(rad);
   const ty = -CARD_RADIUS * Math.cos(rad);   // negative because Y goes down in screen coords
-  const len = Math.sqrt(tx * tx + ty * ty);
-  return { tx, ty, dx: tx / len, dy: ty / len };
+  // tx/len = (R·sin(rad))/R = sin(rad); ty/len = (-R·cos(rad))/R = -cos(rad)
+  return { tx, ty, dx: Math.sin(rad), dy: -Math.cos(rad) };
 }
 
 function tableSlotStyle(): SlotStyle {
   const rad = degToRad(TABLE_DEG);
   const tx = TABLE_RADIUS * Math.sin(rad);
   const ty = -TABLE_RADIUS * Math.cos(rad);
-  const len = Math.sqrt(tx * tx + ty * ty);
-  return { tx, ty, dx: tx / len, dy: ty / len };
+  // tx/len = (R·sin(rad))/R = sin(rad); ty/len = (-R·cos(rad))/R = -cos(rad)
+  return { tx, ty, dx: Math.sin(rad), dy: -Math.cos(rad) };
 }
 
 export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {

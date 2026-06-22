@@ -47,16 +47,15 @@ interface ModeParams {
   edge: number;     // alpha del grafo
   fire: number;     // sinapsis
   turb: number;     // turbulencia
-  spin: number;     // velocidad orbital del anillo
   body: number;     // alpha del cuerpo
   sky: number;      // mezcla "cielo" del fondo
 }
 
 const MODE: Record<SessionState, ModeParams> = {
-  idle: { glow: 0.35, rot: 0.05, edge: 0, fire: 0, turb: 0.3, spin: 0, body: 0.9, sky: 1 },
-  listening: { glow: 1.0, rot: 0.32, edge: 0.9, fire: 0.22, turb: 0.14, spin: 0, body: 1, sky: 0 },
-  processing: { glow: 1.25, rot: 0.4, edge: 0, fire: 1, turb: 0.55, spin: 1, body: 1, sky: 0 },
-  speaking: { glow: 1.1, rot: 0.36, edge: 0.75, fire: 0.35, turb: 0.12, spin: 0, body: 1, sky: 0 },
+  idle: { glow: 0.35, rot: 0.05, edge: 0, fire: 0, turb: 0.3, body: 0.9, sky: 1 },
+  listening: { glow: 1.0, rot: 0.32, edge: 0.9, fire: 0.22, turb: 0.14, body: 1, sky: 0 },
+  processing: { glow: 1.25, rot: 0.4, edge: 0, fire: 1, turb: 0.55, body: 1, sky: 0 },
+  speaking: { glow: 1.1, rot: 0.36, edge: 0.75, fire: 0.35, turb: 0.12, body: 1, sky: 0 },
 };
 
 const BG_VERT = `#version 300 es
@@ -224,9 +223,13 @@ export class OttoGLEngine {
   private rcolBuf: WebGLBuffer;
   // preallocated CPU arrays — peak vertex count por modo:
   //   Base (todos los modos):  3×120×2 = 720 (arcos) + 3×30×2 = 180 (ticks) = 900
-  //   processing (extra):      1 línea frontal + 5 trail = 6 segmentos × 2 = 12  → 912
+  //   processing (extra):      1 línea frontal + 4 trail = 5 segmentos × 2 = 10  → 910
   //   listening  (extra):      arco-medidor en anillo exterior, hasta 120 segs × 2  = 240 → 1140
-  // Pico máximo = 1140 (listening con arco completo).
+  // Pico teórico estático: 1140 (listening con arco completo).
+  // NOTA: durante la transición listening→processing, ringAlign decae lentamente
+  // (condición: ringAlign>0.05) y el radar activa al mismo frame; pico transitorio
+  // ≈ 900 + 240 + 10 = 1150 verts — sigue muy por debajo de 1280.
+  // Los guards (vIdx+2 > MAX_RING_VERTS) previenen cualquier desbordamiento.
   // Se usa 1280 para dar margen y alineación a potencia de 2 próxima.
   private static readonly MAX_RING_VERTS = 1280;
   private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
@@ -255,11 +258,11 @@ export class OttoGLEngine {
   private pos2 = new Float32Array(N * 2);
   private col4 = new Float32Array(N * 4);
   private sz = new Float32Array(N);
+  private wv = new Float32Array(16);  // wave uniform — reutilizado cada frame (hoisted)
 
   // grafo
   private edgeA = new Uint16Array(MAX_EDGES);
   private edgeB = new Uint16Array(MAX_EDGES);
-  private edgeRest = new Float32Array(MAX_EDGES);
   private edgePh = new Float32Array(MAX_EDGES);
   private edgeSp = new Float32Array(MAX_EDGES);
   private edgeFPh = new Float32Array(MAX_EDGES);
@@ -488,7 +491,6 @@ export class OttoGLEngine {
             if (d2 < thresh2) {
               this.edgeA[e] = i;
               this.edgeB[e] = j;
-              this.edgeRest[e] = Math.sqrt(d2);
               this.edgePh[e] = Math.random() * Math.PI * 2;
               this.edgeSp[e] = 0.8 + Math.random() * 1.8;
               this.edgeFPh[e] = Math.random() * Math.PI * 2;
@@ -608,7 +610,6 @@ export class OttoGLEngine {
     this.curP.edge += (target.edge - this.curP.edge) * k;
     this.curP.fire += (target.fire - this.curP.fire) * k;
     this.curP.turb += (target.turb - this.curP.turb) * k;
-    this.curP.spin += (target.spin - this.curP.spin) * k;
     this.curP.body += (target.body - this.curP.body) * k;
     this.curP.sky += (target.sky - this.curP.sky) * k;
 
@@ -671,7 +672,8 @@ export class OttoGLEngine {
     gl.uniform2f(this.uni.bg_center, cx, this.h - cy);
     gl.uniform1f(this.uni.bg_sky, this.curP.sky);
     gl.uniform1f(this.uni.bg_flash, this.flash);
-    const wv = new Float32Array(16);
+    this.wv.fill(0);
+    const wv = this.wv;
     let wi = 0;
     for (let i = this.waves.length - 1; i >= 0; i--) {
       const w = this.waves[i];
@@ -1065,7 +1067,7 @@ export class OttoGLEngine {
       const SWG = PALETTE.processing.hi[1] / 255; // 255/255
       const SWB = PALETTE.processing.hi[2] / 255; // 180/255
 
-      for (let seg = 0; seg <= TRAIL_SEGS; seg++) {
+      for (let seg = 0; seg < TRAIL_SEGS; seg++) {
         if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
         // seg=0 es el frente (más brillante); seg=TRAIL_SEGS es la cola (más tenue)
         const frac  = seg / TRAIL_SEGS;            // 0 = frente, 1 = cola
