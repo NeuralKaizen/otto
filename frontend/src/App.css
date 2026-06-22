@@ -225,7 +225,7 @@
 /*
  * .hud-canvas is a full-area overlay.
  * Each .hud-slot is absolute, positioned via CSS vars injected from Canvas.tsx:
- *   --tx / --ty  vmin offset from the core center (50%, 44%)
+ *   --tx / --ty  vmin offset from the core center (50%, 50%)
  *   --dx / --dy  unit vector pointing outward (for the reveal animation)
  */
 .hud-canvas {
@@ -253,12 +253,12 @@
 .hud-slot {
   position: absolute;
   /*
-   * Anchor to core center (50% h, 44% v) then offset by the computed radius
+   * Anchor to core center (50% h, 50% v) then offset by the computed radius
    * vector.  calc() multiplies the unitless CSS var by 1vmin to get the actual
    * screen distance.  translate(-50%,-50%) centers the card on its anchor point.
    */
   left: calc(50% + var(--tx, 0) * 1vmin);
-  top:  calc(44% + var(--ty, 0) * 1vmin);
+  top:  calc(50% + var(--ty, 0) * 1vmin);
   transform: translate(-50%, -50%);
 
   pointer-events: auto;

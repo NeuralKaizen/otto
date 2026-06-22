@@ -4,7 +4,7 @@ import { widgetFor } from "./widgets/registry";
 
 // ─── Arc placement ──────────────────────────────────────────────────────────
 //
-// Core center sits at (50 vw, 44 vh).
+// Core center sits at (50 vw, 50 vh).
 // Outer HUD ring ≈ 0.41 × min(vw,vh) = 41 vmin radius.
 // Cards anchor just OUTSIDE that ring at CARD_RADIUS vmin so the core stays clear.
 //
@@ -18,7 +18,7 @@ import { widgetFor } from "./widgets/registry";
 //
 // The slot is then placed with:
 //   left: calc(50% + var(--tx) * 1vmin)
-//   top:  calc(44% + var(--ty) * 1vmin)
+//   top:  calc(50% + var(--ty) * 1vmin)
 //   transform: translate(-50%, -50%)   ← centers the card on that anchor point
 
 const CARD_RADIUS   = 47;   // vmin — clear of the outer ring (~41vmin)

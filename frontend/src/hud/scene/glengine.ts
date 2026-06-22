@@ -508,7 +508,7 @@ export class OttoGLEngine {
   }
 
   get center(): { x: number; y: number } {
-    return { x: this.w / 2, y: this.h * 0.44 };
+    return { x: this.w / 2, y: this.h * 0.5 };
   }
   get R(): number {
     return Math.min(this.w, this.h) * 0.23;
