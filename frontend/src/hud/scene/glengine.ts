@@ -222,10 +222,13 @@ export class OttoGLEngine {
   private ringVao: WebGLVertexArrayObject;
   private rposBuf: WebGLBuffer;
   private rcolBuf: WebGLBuffer;
-  // preallocated CPU arrays: 3 anillos × 120 segmentos × 2 verts + ticks
-  // = 3×120×2 = 720 verts de anillo + ~3×30×2 = 180 verts de tick = 900 max
-  // + barrido radar en processing: 1 línea frontal + 5 segmentos de trail = 12 verts
-  private static readonly MAX_RING_VERTS = 1024;
+  // preallocated CPU arrays — peak vertex count por modo:
+  //   Base (todos los modos):  3×120×2 = 720 (arcos) + 3×30×2 = 180 (ticks) = 900
+  //   processing (extra):      1 línea frontal + 5 trail = 6 segmentos × 2 = 12  → 912
+  //   listening  (extra):      arco-medidor en anillo exterior, hasta 120 segs × 2  = 240 → 1140
+  // Pico máximo = 1140 (listening con arco completo).
+  // Se usa 1280 para dar margen y alineación a potencia de 2 próxima.
+  private static readonly MAX_RING_VERTS = 1280;
   private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
   private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4); // r,g,b,a por vértice
   private uni: Record<string, WebGLUniformLocation | null> = {};
@@ -274,6 +277,12 @@ export class OttoGLEngine {
   private snap = 0;  // dureza de transición (stiffness extra), decae
   private flash = 0;
   private breath = 0; // envolvente lenta de respiración (0..1)
+  // listening: alineación de los anillos (0 = giro libre, 1 = orientación fija)
+  private ringAlign = 0;
+  // listening: inclinación hacia adelante extra de la esfera (radianes)
+  private tiltLean = 0;
+  // speaking: pop radial efímero para erupciones en picos de amp
+  private eruptionPop = 0;
   private spikeMask = new Float32Array(N); // ~8% de cáscara: 1 = punta activa
   private waves: Wave[] = [];
   private waveCooldown = 0;
@@ -561,13 +570,16 @@ export class OttoGLEngine {
     }
     const wake = prev === "idle";
     const motion = this.reducedMotion ? 0.25 : 1;
-    this.snap = Math.min(1.3, this.snap + (wake ? 1.15 : 0.85)) * motion;
+    // listening: snap más duro — las partículas se clavan en la esfera con convicción
+    const listenExtra = mode === "listening" ? 1.35 : 1.0;
+    this.snap = Math.min(1.3, this.snap + (wake ? 1.15 : 0.85) * listenExtra) * motion;
     this.flash = Math.min(1.4, this.flash + (wake ? 1.1 : 0.55));
     this.spawnWaves(wake ? 3 : 1, wake ? 0.5 : 0.26);
     if (mode === "processing") this.lockCooldown = 0.4;
     // patada 3D: el cuerpo se sacude al cambiar
     const R = this.R || 200;
-    const kick = (wake ? 0.55 : 0.35) * motion;
+    // listening: kick más fuerte para que las partículas lleguen con más inercia
+    const kick = (wake ? 0.55 : 0.35) * listenExtra * motion;
     for (let i = 0; i < N; i++) {
       const az = this.seed[i] * 7.7 + i;
       const el = Math.acos(2 * ((i * 0.61803) % 1) - 1);
@@ -605,10 +617,26 @@ export class OttoGLEngine {
     this.waveCooldown -= dt;
     this.lockCooldown -= dt;
 
+    // listening: alinear anillos (1) o liberar (0) suavemente — tasa ~dt*3
+    const ringAlignTarget = this.mode === "listening" ? 1 : 0;
+    this.ringAlign += (ringAlignTarget - this.ringAlign) * Math.min(1, dt * 3);
+
+    // listening: inclinar la esfera levemente hacia adelante (~-0.12 rad extra)
+    // atenuado con reducedMotion
+    const leanTarget = (this.mode === "listening" && !this.reducedMotion) ? -0.12 : 0;
+    this.tiltLean += (leanTarget - this.tiltLean) * Math.min(1, dt * 3);
+
+    // speaking: decaer el pop radial de erupción
+    this.eruptionPop *= Math.exp(-dt * 8.0);
+
     const amp = Math.min(1, Math.max(externalAmp, this.ambient(t)));
     if (this.mode === "speaking" && amp > 0.55 && this.waveCooldown <= 0 && !this.reducedMotion) {
       this.spawnWaves(1, 0.1 + amp * 0.14);
       this.waveCooldown = 0.35;
+      // Erupción radial: bump de flash y pop para que la esfera estalle en el pico
+      // (reducedMotion ya verificado en el guard del if: motion = 1 aquí)
+      this.flash = Math.min(1.4, this.flash + 0.18 * amp);
+      this.eruptionPop = Math.min(0.18, this.eruptionPop + 0.12 * amp);
     }
 
     // Pulsos de "lock": cada ~0.8 s en processing, una oleada llega al núcleo
@@ -679,7 +707,7 @@ export class OttoGLEngine {
     const ringIntensity = this.mode === "idle"
       ? 0.35 + this.curP.glow * 0.15
       : 0.65 + this.curP.glow * 0.25;
-    this.drawRings(t, ringIntensity);
+    this.drawRings(t, ringIntensity, amp);
 
     // puntos: pasada halo (bloom barato) + pasada núcleo
     gl.useProgram(this.ptProg);
@@ -725,8 +753,10 @@ export class OttoGLEngine {
     const form = FORM[this.mode];
     const cosY = Math.cos(this.rotY);
     const sinY = Math.sin(this.rotY);
-    const tiltC = Math.cos(-0.34);
-    const tiltS = Math.sin(-0.34);
+    // tiltLean: inclinación suave hacia adelante en listening (0 en otros estados)
+    const tiltAngle = -0.34 + this.tiltLean;
+    const tiltC = Math.cos(tiltAngle);
+    const tiltS = Math.sin(tiltAngle);
     const K = (9 + this.snap * 75) * motion;
     const D = 4.4 + this.snap * 3.5;
     const colorK = Math.min(1, dt * 2.8);
@@ -779,7 +809,11 @@ export class OttoGLEngine {
         let rad = R * this.sphR[i] * ampR;
         if (this.mode === "speaking") {
           const lat = Math.acos(Math.max(-1, Math.min(1, dy)));
-          rad += Math.sin(lat * 7 - t * 11) * amp * R * 0.06;
+          // Onda primaria reforzada (0.06 → 0.10) + segundo armónico para riqueza
+          rad += Math.sin(lat * 7 - t * 11) * amp * R * 0.10;
+          rad += Math.sin(lat * 13 - t * 17 + 0.8) * amp * R * 0.04;
+          // Pop radial de erupción: breve expansión en picos de amp (clamped)
+          rad += this.eruptionPop * R * (0.5 + 0.5 * this.sphR[i]);
         }
         const shell = this.sphR[i] > 0.9;
         // Púas radiales: cáscara marcada se eriza con la voz; atenuado con reducedMotion
@@ -893,7 +927,8 @@ export class OttoGLEngine {
   // Anillos HUD concéntricos: 3 anillos finos que rotan a velocidades
   // distintas + ticks radiales cortos ("telemetría"). Color = Aurora idle.hi.
   // No aloca en el hot-path: escribe en rpos/rcol preallocated.
-  private drawRings(t: number, intensity: number) {
+  // amp: amplitud de mic 0..1 — usada para el arco-medidor en listening.
+  private drawRings(t: number, intensity: number, amp: number) {
     const gl = this.gl;
     const { x: cx, y: cy } = this.center;
     const R = this.R;
@@ -918,10 +953,17 @@ export class OttoGLEngine {
     // Factor 3× solo en processing, sin afectar otros estados.
     const ringSpeedMul = this.mode === "processing" ? 3.0 : 1.0;
 
+    // listening: ángulo de alineación fijo — los anillos "se detienen" aquí.
+    // Se elige π/6 (30°) como postura natural de escucha.
+    const ALIGN_ANGLE = Math.PI / 6;
+
     for (let ri = 0; ri < RING_SPEC.length; ri++) {
       const [factor, speed] = RING_SPEC[ri];
       const r = R * factor;
-      const rotOff = t * speed * motionScale * ringSpeedMul;
+      // baseSpin: el giro libre; se mezcla hacia ALIGN_ANGLE según ringAlign.
+      // En processing ringSpeedMul no se toca (ringAlign = 0 ahí).
+      const baseSpin = t * speed * motionScale * ringSpeedMul;
+      const rotOff = baseSpin * (1 - this.ringAlign) + ALIGN_ANGLE * this.ringAlign;
 
       // ---- arco como gl.LINES (120 segmentos) ----
       for (let s = 0; s < SEGS; s++) {
@@ -962,11 +1004,51 @@ export class OttoGLEngine {
       }
     }
 
+    // ---- Arco-medidor de mic (solo en listening) ----
+    // Dibuja un arco más brillante en el anillo exterior (factor 1.80) proporcional
+    // a amp — de 0° a amp×340° (casi la vuelta completa en voz alta).
+    // Usa PALETTE.listening.hi para diferenciarse visualmente del anillo base.
+    // No aloca: escribe en rpos/rcol preallocated; el pico de 120 segs × 2 = 240 verts
+    // ya está incluido en MAX_RING_VERTS = 1280 (ver cálculo en la declaración).
+    if (this.mode === "listening" || this.ringAlign > 0.05) {
+      const outerFactor = RING_SPEC[RING_SPEC.length - 1][0]; // 1.80
+      const outerR = R * outerFactor;
+      // ángulo de inicio: parte de la orientación fija del anillo alineado
+      const arcStart = ALIGN_ANGLE;
+      // sweep: 0..340° proporcional a amp (no toca los últimos 20° como respiradero)
+      const arcSweep = amp * (340 / 360) * Math.PI * 2;
+      // color: PALETTE.listening.hi = [255, 150, 220]
+      const LH = PALETTE.listening.hi;
+      const lr = LH[0] / 255;
+      const lg = LH[1] / 255;
+      const lb = LH[2] / 255;
+      // alpha: más brillante que el anillo base, mezclado con ringAlign para
+      // que el arco no aparezca en estados donde ringAlign es casi cero
+      const arcA = 0.75 * intensity * this.ringAlign;
+      // segmentos proporcionales a amp — mínimo 2, máximo SEGS
+      const arcSegs = Math.max(2, Math.round(SEGS * amp));
+      for (let s = 0; s < arcSegs; s++) {
+        const a0 = arcStart + (s / arcSegs) * arcSweep;
+        const a1 = arcStart + ((s + 1) / arcSegs) * arcSweep;
+        const p0x = cx + Math.cos(a0) * outerR;
+        const p0y = cy + Math.sin(a0) * outerR;
+        const p1x = cx + Math.cos(a1) * outerR;
+        const p1y = cy + Math.sin(a1) * outerR;
+        const v = vIdx * 2;
+        rpos[v]     = p0x; rpos[v + 1] = p0y;
+        rpos[v + 2] = p1x; rpos[v + 3] = p1y;
+        const c = vIdx * 4;
+        rcol[c]     = lr; rcol[c + 1] = lg; rcol[c + 2] = lb; rcol[c + 3] = arcA;
+        rcol[c + 4] = lr; rcol[c + 5] = lg; rcol[c + 6] = lb; rcol[c + 7] = arcA;
+        vIdx += 2;
+      }
+    }
+
     // ---- Barrido de radar (solo en processing) ----
     // Línea radial que gira rápido (t×3) desde el centro hasta el anillo exterior,
     // más un trail de 5 segmentos que se desvanece detrás. Emula escáner Jarvis.
     // No aloca: escribe directamente en rpos/rcol preallocated (el presupuesto
-    // extra de MAX_RING_VERTS = 1024 cubre: 12 verts de barrido holgadamente).
+    // extra de MAX_RING_VERTS = 1280 cubre: 12 verts de barrido holgadamente).
     if (this.mode === "processing") {
       // Velocidad del barrido: 3 rad/s (≈0.5 rev/s) con reducedMotion atenuado
       const SWEEP_SPEED  = this.reducedMotion ? 1.2 : 3.0;
