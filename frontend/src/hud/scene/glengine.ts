@@ -224,9 +224,10 @@ export class OttoGLEngine {
   private rcolBuf: WebGLBuffer;
   // preallocated CPU arrays: 3 anillos × 120 segmentos × 2 verts + ticks
   // = 3×120×2 = 720 verts de anillo + ~3×30×2 = 180 verts de tick = 900 max
-  private static readonly MAX_RING_VERTS = 960;
-  private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2);
-  private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4);
+  // + barrido radar en processing: 1 línea frontal + 5 segmentos de trail = 12 verts
+  private static readonly MAX_RING_VERTS = 1024;
+  private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
+  private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4); // r,g,b,a por vértice
   private uni: Record<string, WebGLUniformLocation | null> = {};
 
   private mode: SessionState = "idle";
@@ -280,6 +281,9 @@ export class OttoGLEngine {
   private spikeMask = new Float32Array(N); // ~8% de cáscara: 1 = punta activa
   private waves: Wave[] = [];
   private waveCooldown = 0;
+  // Temporizador de "lock": en processing, dispara un pulso breve cada ~0.8 s
+  // cuando una oleada de datos llega al núcleo — patrón igual que waveCooldown.
+  private lockCooldown = 0.4; // empezar desplazado para que el primer pulso no sea inmediato
 
   private w = 0;
   private h = 0;
@@ -609,11 +613,22 @@ export class OttoGLEngine {
     this.snap *= Math.exp(-dt * 2.6);
     this.flash *= Math.exp(-dt * 2.6);
     this.waveCooldown -= dt;
+    this.lockCooldown -= dt;
 
     const amp = Math.min(1, Math.max(externalAmp, this.ambient(t)));
     if (this.mode === "speaking" && amp > 0.55 && this.waveCooldown <= 0 && !this.reducedMotion) {
       this.spawnWaves(1, 0.1 + amp * 0.14);
       this.waveCooldown = 0.35;
+    }
+
+    // Pulsos de "lock": cada ~0.8 s en processing, una oleada llega al núcleo
+    // y el anillo interior flashea — emula datos siendo capturados/procesados.
+    // Respeta reducedMotion: pulso más débil y sin onda de choque extra.
+    if (this.mode === "processing" && this.lockCooldown <= 0) {
+      const motion = this.reducedMotion ? 0.3 : 1;
+      this.flash = Math.min(1.4, this.flash + 0.22 * motion);
+      this.spawnWaves(1, 0.18 * motion);
+      this.lockCooldown = 0.75 + Math.random() * 0.1; // ~0.8 s con jitter leve
     }
 
     const motion = this.reducedMotion ? 0.3 : 1;
@@ -791,16 +806,55 @@ export class OttoGLEngine {
         alpha = (shell ? 0.85 : 0.4) * bodyA * (0.75 + 0.25 * Math.sin(t * this.seed[i] + i));
         size = this.size0[i] * (shell ? 1 : 0.8);
       } else {
-        // vórtice de anillo de polvo (la referencia de los videos)
-        const ang = this.ringA[i] + t * this.ringW[i] * ringSpin;
-        const rr = R * this.ringR[i] * (1 + amp * 0.08);
-        tx = Math.cos(ang) * rr;
-        ty = this.ringL[i] * R + Math.sin(ang * 2 + this.seed[i]) * R * 0.012;
-        tz = Math.sin(ang) * rr;
-        const inner = Math.max(0, 1.45 - this.ringR[i]);
-        bright = 0.75 + inner * 0.9 + amp * 0.3;
-        alpha = (0.4 + inner * 0.5) * bodyA;
-        size = this.size0[i] * 0.78;
+        // processing: escaneo / fetch de información estilo Jarvis.
+        // Las partículas fluyen HACIA ADENTRO en oleadas continuas —
+        // "fragmentos de datos siendo absorbidos por el núcleo".
+        //
+        // Constantes y su justificación:
+        //   STREAM_SPEED = 0.55  — velocidad de barrido (ciclo ~1.8 s); suficientemente
+        //                          rápido para leer "actividad" sin ser frenético.
+        //   EXTRA_RAD    = 1.6   — distancia máxima de origen (1.6 × R fuera de la esfera)
+        //                          para que los fragmentos lleguen desde lejos.
+        //   NEAR_THRESH  = 0.08  — fracción de ciclo donde la partícula "llegó"; se asienta
+        //                          en el núcleo dando coherencia visual de masa central.
+        //
+        // sweep s ∈ [0,1): 1 = lejos (recién salida), 0 = llegó al núcleo.
+        // Fraccional por partícula via seed[i] → oleadas desfasadas ≠ simultáneas.
+        const STREAM_SPEED = 0.55;  // velocidad de la onda de entrada (ciclos/s)
+        const EXTRA_RAD    = 1.6;   // cuántos R de distancia extra en el origen
+        const NEAR_THRESH  = 0.08;  // s bajo este umbral ≡ partícula "en el núcleo"
+
+        // s va de 1→0 repetidamente (módulo) desfasado por seed[i]
+        const raw = (t * STREAM_SPEED + this.seed[i] / (Math.PI * 2));
+        const s = 1 - (raw - Math.floor(raw)); // s ∈ (0, 1], grande = lejos
+
+        // radio: parte lejos (sphR[i] + EXTRA_RAD) y se acerca suavemente al núcleo
+        const distFrac = s * s; // curvatura cuadrática → aceleración al llegar
+        const rad = R * (this.sphR[i] + distFrac * EXTRA_RAD);
+
+        // dirección: usa dir[i] (posición fija en la esfera) para que cada
+        // partícula tenga su propia trayectoria radial → cobertura esférica completa
+        const dx = this.dir[i3];
+        const dy = this.dir[i3 + 1];
+        const dz = this.dir[i3 + 2];
+        // rotación Y (sincronizada con rotY) para que el campo gire con el cuerpo
+        const rx = dx * cosY + dz * sinY;
+        const rz = -dx * sinY + dz * cosY;
+        tx = rx * rad;
+        ty = dy * rad;
+        tz = rz * rad;
+
+        // Partícula "cerca" del núcleo (s bajo): vive en el núcleo, muy brillante
+        // Partícula "lejos" (s alto): tenue, solo se ve al acercarse
+        const nearness = 1 - s;                         // 0 = lejos, 1 = llegó
+        const atNucleus = s < NEAR_THRESH ? 1 : 0;      // booleano en forma de float
+        // Brilla más conforme se acerca; las que llegaron son el núcleo coherente
+        bright = 0.45 + nearness * 0.9 + atNucleus * 0.4 + amp * 0.25;
+        // Alpha: invisible al arrancar lejos, máximo al llegar
+        const arrivalAlpha = Math.max(0, 1 - s * s * 3);  // fade-in rápido
+        alpha  = (0.25 + arrivalAlpha * 0.65) * bodyA;
+        // Tamaño: más grande en el núcleo, más pequeño mientras viaja
+        size = this.size0[i] * (0.6 + nearness * 0.55);
       }
 
       // ---- resorte + turbulencia ----
@@ -870,10 +924,14 @@ export class OttoGLEngine {
     const rpos = this.rpos;
     const rcol = this.rcol;
 
+    // En processing, acelerar la rotación de los anillos para transmitir urgencia.
+    // Factor 3× solo en processing, sin afectar otros estados.
+    const ringSpeedMul = this.mode === "processing" ? 3.0 : 1.0;
+
     for (let ri = 0; ri < RING_SPEC.length; ri++) {
       const [factor, speed] = RING_SPEC[ri];
       const r = R * factor;
-      const rotOff = t * speed * motionScale;
+      const rotOff = t * speed * motionScale * ringSpeedMul;
 
       // ---- arco como gl.LINES (120 segmentos) ----
       for (let s = 0; s < SEGS; s++) {
@@ -911,6 +969,65 @@ export class OttoGLEngine {
         rcol[c]     = hr; rcol[c + 1] = hg; rcol[c + 2] = hb; rcol[c + 3] = tickA;
         rcol[c + 4] = hr; rcol[c + 5] = hg; rcol[c + 6] = hb; rcol[c + 7] = tickA;
         vIdx += 2;
+      }
+    }
+
+    // ---- Barrido de radar (solo en processing) ----
+    // Línea radial que gira rápido (t×3) desde el centro hasta el anillo exterior,
+    // más un trail de 5 segmentos que se desvanece detrás. Emula escáner Jarvis.
+    // No aloca: escribe directamente en rpos/rcol preallocated (el presupuesto
+    // extra de MAX_RING_VERTS = 1024 cubre: 12 verts de barrido holgadamente).
+    if (this.mode === "processing") {
+      // Velocidad del barrido: 3 rad/s (≈0.5 rev/s) con reducedMotion atenuado
+      const SWEEP_SPEED  = this.reducedMotion ? 1.2 : 3.0;
+      const TRAIL_SEGS   = 5;    // segmentos del trail detrás del frente
+      const TRAIL_SPAN   = 0.55; // ángulo total del trail (radianes) — ~31°
+      const outerR = R * RING_SPEC[RING_SPEC.length - 1][0]; // radio del anillo exterior
+      const sweepAng = t * SWEEP_SPEED * motionScale;
+
+      // Colores del barrido: Aurora processing.hi (verde neón cian) para contraste
+      const SWR = PALETTE.processing.hi[0] / 255; // 120/255
+      const SWG = PALETTE.processing.hi[1] / 255; // 255/255
+      const SWB = PALETTE.processing.hi[2] / 255; // 180/255
+
+      for (let seg = 0; seg <= TRAIL_SEGS; seg++) {
+        // seg=0 es el frente (más brillante); seg=TRAIL_SEGS es la cola (más tenue)
+        const frac  = seg / TRAIL_SEGS;            // 0 = frente, 1 = cola
+        const ang   = sweepAng - frac * TRAIL_SPAN;
+        const angN  = sweepAng - (frac + 1 / TRAIL_SEGS) * TRAIL_SPAN;
+        // Alpha: frente 0.85, cola cae linealmente a 0.04
+        const segA  = (1 - frac) * (1 - frac) * (this.reducedMotion ? 0.35 : 0.85);
+        const cosA  = Math.cos(ang);
+        const sinA  = Math.sin(ang);
+        const cosN  = Math.cos(angN);
+        const sinN  = Math.sin(angN);
+
+        // vert par: punto en el anillo exterior en ang vs angN (LINES necesita pares)
+        // Para el frente (seg=0) dibujamos línea centro→borde; para trail dibujamos
+        // arco entre ángulos consecutivos en el borde exterior (efecto de "sweep").
+        if (seg === 0) {
+          // Línea radial central: desde el centro hasta el borde exterior
+          const v = vIdx * 2;
+          rpos[v]     = cx;
+          rpos[v + 1] = cy;
+          rpos[v + 2] = cx + cosA * outerR;
+          rpos[v + 3] = cy + sinA * outerR;
+          const c = vIdx * 4;
+          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA;
+          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA * 0.5;
+          vIdx += 2;
+        } else {
+          // Arco del trail: segmento de arco entre ang y angN en el borde exterior
+          const v = vIdx * 2;
+          rpos[v]     = cx + cosA * outerR;
+          rpos[v + 1] = cy + sinA * outerR;
+          rpos[v + 2] = cx + cosN * outerR;
+          rpos[v + 3] = cy + sinN * outerR;
+          const c = vIdx * 4;
+          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA;
+          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA * 0.7;
+          vIdx += 2;
+        }
       }
     }
 
