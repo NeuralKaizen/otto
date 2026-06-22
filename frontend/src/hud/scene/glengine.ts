@@ -19,6 +19,14 @@ const SHELL = 0.9;  // fracción de la esfera en cáscara (el resto, volumen)
 const MAX_EDGES = 4200;
 const WORD = "OTTO";
 
+// Especificación estática de los 3 anillos HUD: [factor-radio, velocidad-rotación].
+// Definida a nivel de módulo para evitar allocaciones por frame en drawRings.
+const RING_SPEC: ReadonlyArray<readonly [number, number]> = [
+  [1.15,  0.10],
+  [1.45, -0.07],
+  [1.80,  0.04],
+];
+
 type RGB = [number, number, number];
 type World = Record<SessionState, { base: RGB; lo: RGB; hi: RGB }>;
 
@@ -845,12 +853,6 @@ export class OttoGLEngine {
     const gl = this.gl;
     const { x: cx, y: cy } = this.center;
     const R = this.R;
-    // radios y velocidades de los 3 anillos
-    const rings = [
-      { r: R * 1.15, speed:  0.10 },
-      { r: R * 1.45, speed: -0.07 },
-      { r: R * 1.80, speed:  0.04 },
-    ] as const;
     // reducedMotion: congelar casi por completo la rotación
     const motionScale = this.reducedMotion ? 0.08 : 1.0;
     const SEGS = 120;          // segmentos de arco por anillo
@@ -868,11 +870,12 @@ export class OttoGLEngine {
     const rpos = this.rpos;
     const rcol = this.rcol;
 
-    for (let ri = 0; ri < rings.length; ri++) {
-      const { r, speed } = rings[ri];
+    for (let ri = 0; ri < RING_SPEC.length; ri++) {
+      const [factor, speed] = RING_SPEC[ri];
+      const r = R * factor;
       const rotOff = t * speed * motionScale;
 
-      // ---- arco como gl.LINES (30 pares de verts = 60 segmentos) ----
+      // ---- arco como gl.LINES (120 segmentos) ----
       for (let s = 0; s < SEGS; s++) {
         const a0 = rotOff + (s / SEGS) * Math.PI * 2;
         const a1 = rotOff + ((s + 1) / SEGS) * Math.PI * 2;
@@ -890,11 +893,11 @@ export class OttoGLEngine {
       }
 
       // ---- ticks radiales ----
+      // cada 3er tick es "activo" (más brillante) — deriva lento con t
+      const activePeriod = 3;
+      const activeShift = Math.floor(t * 0.4 * motionScale) % activePeriod;
       for (let ti = 0; ti < TICKS; ti++) {
         const ang = rotOff + (ti / TICKS) * Math.PI * 2;
-        // cada 3er tick es "activo" (más brillante) — deriva lento con t
-        const activePeriod = 3;
-        const activeShift = Math.floor(t * 0.4 * motionScale) % activePeriod;
         const isActive = (ti % activePeriod) === activeShift;
         const tickA = isActive ? baseA * 2.2 : baseA * 0.6;
         const r0 = r;
