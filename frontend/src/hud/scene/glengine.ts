@@ -210,6 +210,15 @@ export class OttoGLEngine {
   private sizeBuf: WebGLBuffer;
   private eposBuf: WebGLBuffer;
   private ecolBuf: WebGLBuffer;
+  // anillos HUD concéntricos — VAO dedicado para no interferir con el grafo
+  private ringVao: WebGLVertexArrayObject;
+  private rposBuf: WebGLBuffer;
+  private rcolBuf: WebGLBuffer;
+  // preallocated CPU arrays: 3 anillos × 120 segmentos × 2 verts + ticks
+  // = 3×120×2 = 720 verts de anillo + ~3×30×2 = 180 verts de tick = 900 max
+  private static readonly MAX_RING_VERTS = 960;
+  private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2);
+  private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4);
   private uni: Record<string, WebGLUniformLocation | null> = {};
 
   private mode: SessionState = "idle";
@@ -314,6 +323,20 @@ export class OttoGLEngine {
     this.ecolBuf = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.ecolBuf);
     gl.bufferData(gl.ARRAY_BUFFER, this.ecol.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+
+    // anillos HUD — VAO dedicado, reutiliza lnProg (genérico screen-space)
+    this.ringVao = gl.createVertexArray()!;
+    gl.bindVertexArray(this.ringVao);
+    this.rposBuf = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.rposBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.rpos.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.rcolBuf = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.rcolBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.rcol.byteLength, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
@@ -639,6 +662,12 @@ export class OttoGLEngine {
       gl.drawArrays(gl.LINES, 0, this.edgeCount * 2);
     }
 
+    // anillos HUD: intensity sube fuera de idle para leer "el sistema activo"
+    const ringIntensity = this.mode === "idle"
+      ? 0.35 + this.curP.glow * 0.15
+      : 0.65 + this.curP.glow * 0.25;
+    this.drawRings(t, ringIntensity);
+
     // puntos: pasada halo (bloom barato) + pasada núcleo
     gl.useProgram(this.ptProg);
     gl.uniform2f(this.uni.pt_res, this.w, this.h);
@@ -807,6 +836,92 @@ export class OttoGLEngine {
       this.col4[i4 + 3] = Math.min(1, alpha * depth * (1 - skyMix * 0.18) * (1 + this.flash * 0.5));
       this.sz[i] = Math.max(1, size * persp * sizeBoost);
     }
+  }
+
+  // Anillos HUD concéntricos: 3 anillos finos que rotan a velocidades
+  // distintas + ticks radiales cortos ("telemetría"). Color = Aurora idle.hi.
+  // No aloca en el hot-path: escribe en rpos/rcol preallocated.
+  private drawRings(t: number, intensity: number) {
+    const gl = this.gl;
+    const { x: cx, y: cy } = this.center;
+    const R = this.R;
+    // radios y velocidades de los 3 anillos
+    const rings = [
+      { r: R * 1.15, speed:  0.10 },
+      { r: R * 1.45, speed: -0.07 },
+      { r: R * 1.80, speed:  0.04 },
+    ] as const;
+    // reducedMotion: congelar casi por completo la rotación
+    const motionScale = this.reducedMotion ? 0.08 : 1.0;
+    const SEGS = 120;          // segmentos de arco por anillo
+    const TICK_STEP = 12;      // grado entre ticks (cada 12°)
+    const TICKS = Math.round(360 / TICK_STEP); // = 30
+    const TICK_LEN = 0.06;     // fracción del radio del anillo
+    const HI = PALETTE.idle.hi; // [150, 120, 255] — Aurora idle.hi
+    const hr = HI[0] / 255;
+    const hg = HI[1] / 255;
+    const hb = HI[2] / 255;
+    // alpha base: 0.25 × intensity; ticks "activos" doble
+    const baseA = 0.25 * intensity;
+
+    let vIdx = 0;  // siguiente vértice disponible
+    const rpos = this.rpos;
+    const rcol = this.rcol;
+
+    for (let ri = 0; ri < rings.length; ri++) {
+      const { r, speed } = rings[ri];
+      const rotOff = t * speed * motionScale;
+
+      // ---- arco como gl.LINES (30 pares de verts = 60 segmentos) ----
+      for (let s = 0; s < SEGS; s++) {
+        const a0 = rotOff + (s / SEGS) * Math.PI * 2;
+        const a1 = rotOff + ((s + 1) / SEGS) * Math.PI * 2;
+        const p0x = cx + Math.cos(a0) * r;
+        const p0y = cy + Math.sin(a0) * r;
+        const p1x = cx + Math.cos(a1) * r;
+        const p1y = cy + Math.sin(a1) * r;
+        const v = vIdx * 2;
+        rpos[v]     = p0x; rpos[v + 1] = p0y;
+        rpos[v + 2] = p1x; rpos[v + 3] = p1y;
+        const c = vIdx * 4;
+        rcol[c]     = hr; rcol[c + 1] = hg; rcol[c + 2] = hb; rcol[c + 3] = baseA;
+        rcol[c + 4] = hr; rcol[c + 5] = hg; rcol[c + 6] = hb; rcol[c + 7] = baseA;
+        vIdx += 2;
+      }
+
+      // ---- ticks radiales ----
+      for (let ti = 0; ti < TICKS; ti++) {
+        const ang = rotOff + (ti / TICKS) * Math.PI * 2;
+        // cada 3er tick es "activo" (más brillante) — deriva lento con t
+        const activePeriod = 3;
+        const activeShift = Math.floor(t * 0.4 * motionScale) % activePeriod;
+        const isActive = (ti % activePeriod) === activeShift;
+        const tickA = isActive ? baseA * 2.2 : baseA * 0.6;
+        const r0 = r;
+        const r1 = r * (1 + TICK_LEN * (isActive ? 1.5 : 1.0));
+        const cosA = Math.cos(ang);
+        const sinA = Math.sin(ang);
+        const v = vIdx * 2;
+        rpos[v]     = cx + cosA * r0; rpos[v + 1] = cy + sinA * r0;
+        rpos[v + 2] = cx + cosA * r1; rpos[v + 3] = cy + sinA * r1;
+        const c = vIdx * 4;
+        rcol[c]     = hr; rcol[c + 1] = hg; rcol[c + 2] = hb; rcol[c + 3] = tickA;
+        rcol[c + 4] = hr; rcol[c + 5] = hg; rcol[c + 6] = hb; rcol[c + 7] = tickA;
+        vIdx += 2;
+      }
+    }
+
+    if (vIdx === 0) return;
+
+    gl.useProgram(this.lnProg);
+    gl.uniform2f(this.uni.ln_res, this.w, this.h);
+    gl.bindVertexArray(this.ringVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.rposBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, rpos, 0, vIdx * 2);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.rcolBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, rcol, 0, vIdx * 4);
+    gl.drawArrays(gl.LINES, 0, vIdx);
+    gl.bindVertexArray(null);
   }
 
   private fillEdges(t: number, amp: number) {
