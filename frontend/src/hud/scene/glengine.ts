@@ -967,6 +967,7 @@ export class OttoGLEngine {
 
       // ---- arco como gl.LINES (120 segmentos) ----
       for (let s = 0; s < SEGS; s++) {
+        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
         const a0 = rotOff + (s / SEGS) * Math.PI * 2;
         const a1 = rotOff + ((s + 1) / SEGS) * Math.PI * 2;
         const p0x = cx + Math.cos(a0) * r;
@@ -987,6 +988,7 @@ export class OttoGLEngine {
       const activePeriod = 3;
       const activeShift = Math.floor(t * 0.4 * motionScale) % activePeriod;
       for (let ti = 0; ti < TICKS; ti++) {
+        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
         const ang = rotOff + (ti / TICKS) * Math.PI * 2;
         const isActive = (ti % activePeriod) === activeShift;
         const tickA = isActive ? baseA * 2.2 : baseA * 0.6;
@@ -1023,11 +1025,13 @@ export class OttoGLEngine {
       const lg = LH[1] / 255;
       const lb = LH[2] / 255;
       // alpha: más brillante que el anillo base, mezclado con ringAlign para
-      // que el arco no aparezca en estados donde ringAlign es casi cero
-      const arcA = 0.75 * intensity * this.ringAlign;
+      // que el arco no aparezca en estados donde ringAlign es casi cero.
+      // reducedMotion: suprimir el arco-medidor por completo (motion cero).
+      const arcA = 0.75 * intensity * this.ringAlign * (this.reducedMotion ? 0 : 1);
       // segmentos proporcionales a amp — mínimo 2, máximo SEGS
       const arcSegs = Math.max(2, Math.round(SEGS * amp));
       for (let s = 0; s < arcSegs; s++) {
+        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
         const a0 = arcStart + (s / arcSegs) * arcSweep;
         const a1 = arcStart + ((s + 1) / arcSegs) * arcSweep;
         const p0x = cx + Math.cos(a0) * outerR;
@@ -1063,6 +1067,7 @@ export class OttoGLEngine {
       const SWB = PALETTE.processing.hi[2] / 255; // 180/255
 
       for (let seg = 0; seg <= TRAIL_SEGS; seg++) {
+        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
         // seg=0 es el frente (más brillante); seg=TRAIL_SEGS es la cola (más tenue)
         const frac  = seg / TRAIL_SEGS;            // 0 = frente, 1 = cola
         const ang   = sweepAng - frac * TRAIL_SPAN;
