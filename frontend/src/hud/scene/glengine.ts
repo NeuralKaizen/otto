@@ -238,10 +238,6 @@ export class OttoGLEngine {
   private vel = new Float32Array(N * 3);
   private dir = new Float32Array(N * 3); // dirección unitaria (esfera)
   private sphR = new Float32Array(N);    // factor de radio en la esfera
-  private ringR = new Float32Array(N);
-  private ringA = new Float32Array(N);
-  private ringW = new Float32Array(N);   // velocidad angular propia
-  private ringL = new Float32Array(N);   // altura del anillo
   private sky = new Float32Array(N * 3);
   private seed = new Float32Array(N);
   private size0 = new Float32Array(N);
@@ -420,13 +416,6 @@ export class OttoGLEngine {
       this.dir[i * 3 + 1] = y;
       this.dir[i * 3 + 2] = r * Math.sin(th);
 
-      // anillo de polvo: banda densa que se deshilacha hacia afuera
-      const band = Math.pow(Math.random(), 2.0);
-      this.ringR[i] = 1.05 + band * 0.75 + Math.random() * 0.06;
-      this.ringA[i] = Math.random() * Math.PI * 2;
-      this.ringW[i] = (0.55 + Math.random() * 1.3) * (1 / Math.sqrt(this.ringR[i]));
-      this.ringL[i] = (Math.random() * 2 - 1) * (0.035 + band * 0.16);
-
       this.seed[i] = Math.random() * Math.PI * 2;
       this.size0[i] = 1.3 + Math.random() * 2.1;
       const [cr, cg, cb] = samplePalette("idle", Math.random());
@@ -575,6 +564,7 @@ export class OttoGLEngine {
     this.snap = Math.min(1.3, this.snap + (wake ? 1.15 : 0.85)) * motion;
     this.flash = Math.min(1.4, this.flash + (wake ? 1.1 : 0.55));
     this.spawnWaves(wake ? 3 : 1, wake ? 0.5 : 0.26);
+    if (mode === "processing") this.lockCooldown = 0.4;
     // patada 3D: el cuerpo se sacude al cambiar
     const R = this.R || 200;
     const kick = (wake ? 0.55 : 0.35) * motion;
@@ -1013,8 +1003,8 @@ export class OttoGLEngine {
           rpos[v + 2] = cx + cosA * outerR;
           rpos[v + 3] = cy + sinA * outerR;
           const c = vIdx * 4;
-          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA;
-          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA * 0.5;
+          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA * 0.5;
+          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA;
           vIdx += 2;
         } else {
           // Arco del trail: segmento de arco entre ang y angN en el borde exterior
