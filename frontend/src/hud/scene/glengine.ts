@@ -223,15 +223,16 @@ export class OttoGLEngine {
   private rcolBuf: WebGLBuffer;
   // preallocated CPU arrays — peak vertex count por modo:
   //   Base (todos los modos):  3×120×2 = 720 (arcos) + 3×30×2 = 180 (ticks) = 900
-  //   processing (extra):      1 línea frontal + 4 trail = 5 segmentos × 2 = 10  → 910
-  //   listening  (extra):      arco-medidor en anillo exterior, hasta 120 segs × 2  = 240 → 1140
-  // Pico teórico estático: 1140 (listening con arco completo).
+  //   blip orbitante (siempre): 14 segmentos × 2 = 28  → 928
+  //   processing (extra):      1 línea frontal + 4 trail = 5 segmentos × 2 = 10  → 938
+  //   listening  (extra):      arco-medidor en anillo exterior, hasta 120 segs × 2  = 240 → 1168
+  // Pico teórico estático: 1168 (listening con arco completo + blip).
   // NOTA: durante la transición listening→processing, ringAlign decae lentamente
   // (condición: ringAlign>0.05) y el radar activa al mismo frame; pico transitorio
-  // ≈ 900 + 240 + 10 = 1150 verts — sigue muy por debajo de 1280.
+  // ≈ 928 + 240 + 10 = 1178 verts — sigue por debajo de 1536.
   // Los guards (vIdx+2 > MAX_RING_VERTS) previenen cualquier desbordamiento.
-  // Se usa 1280 para dar margen y alineación a potencia de 2 próxima.
-  private static readonly MAX_RING_VERTS = 1280;
+  // Se usa 1536 (1024+512) para dar margen amplio a futuras capas de telemetría.
+  private static readonly MAX_RING_VERTS = 1536;
   private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
   private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4); // r,g,b,a por vértice
   private uni: Record<string, WebGLUniformLocation | null> = {};
@@ -939,12 +940,28 @@ export class OttoGLEngine {
     const TICK_STEP = 12;      // grado entre ticks (cada 12°)
     const TICKS = Math.round(360 / TICK_STEP); // = 30
     const TICK_LEN = 0.06;     // fracción del radio del anillo
-    const HI = PALETTE.idle.hi; // [150, 120, 255] — Aurora idle.hi
-    const hr = HI[0] / 255;
-    const hg = HI[1] / 255;
-    const hb = HI[2] / 255;
-    // alpha base: 0.25 × intensity; ticks "activos" doble
-    const baseA = 0.25 * intensity;
+
+    // Color base del anillo = accent del estado (el mismo PALETTE.base que viste el
+    // chrome HTML y el fondo), para que el marco se sienta parte del mismo sistema
+    // vivo y no un overlay violeta pegado aparte.
+    const BASE = PALETTE[this.mode].base;
+    const br = BASE[0] / 255;
+    const bg = BASE[1] / 255;
+    const bb = BASE[2] / 255;
+    // Color de acento para los realces de telemetría (el dot que corre por los ticks
+    // y el blip que orbita): el .hi del estado, para que "salte" sobre el anillo base.
+    const ACC = PALETTE[this.mode].hi;
+    const ar = ACC[0] / 255;
+    const ag = ACC[1] / 255;
+    const ab = ACC[2] / 255;
+
+    // Respiración del marco: late con el mismo ciclo de respiración del núcleo + la
+    // voz, así el anillo no se siente estático. breathPulse ∈ ~[-1,1].
+    const breathPulse = (this.breath - 0.5) * 2;
+    const breathR = this.reducedMotion ? 0 : 0.014 * breathPulse + amp * 0.03;
+    // alpha base "vivo": piso + respiración + surge con la voz. Blending aditivo, así
+    // que más alpha = más glow → el marco se ilumina cuando Otto habla/escucha.
+    const baseA = intensity * (0.22 + 0.12 * this.breath + 0.30 * amp);
 
     let vIdx = 0;  // siguiente vértice disponible
     const rpos = this.rpos;
@@ -960,7 +977,8 @@ export class OttoGLEngine {
 
     for (let ri = 0; ri < RING_SPEC.length; ri++) {
       const [factor, speed] = RING_SPEC[ri];
-      const r = R * factor;
+      // El radio respira (breathR) en sincronía con el núcleo.
+      const r = R * factor * (1 + breathR);
       // baseSpin: el giro libre; se mezcla hacia ALIGN_ANGLE según ringAlign.
       // En processing ringSpeedMul no se toca (ringAlign = 0 ahí).
       const baseSpin = t * speed * motionScale * ringSpeedMul;
@@ -979,30 +997,71 @@ export class OttoGLEngine {
         rpos[v]     = p0x; rpos[v + 1] = p0y;
         rpos[v + 2] = p1x; rpos[v + 3] = p1y;
         const c = vIdx * 4;
-        rcol[c]     = hr; rcol[c + 1] = hg; rcol[c + 2] = hb; rcol[c + 3] = baseA;
-        rcol[c + 4] = hr; rcol[c + 5] = hg; rcol[c + 6] = hb; rcol[c + 7] = baseA;
+        rcol[c]     = br; rcol[c + 1] = bg; rcol[c + 2] = bb; rcol[c + 3] = baseA;
+        rcol[c + 4] = br; rcol[c + 5] = bg; rcol[c + 6] = bb; rcol[c + 7] = baseA;
         vIdx += 2;
       }
 
-      // ---- ticks radiales ----
-      // cada 3er tick es "activo" (más brillante) — deriva lento con t
-      const activePeriod = 3;
-      const activeShift = Math.floor(t * 0.4 * motionScale) % activePeriod;
+      // ---- ticks radiales: gauge mayor/menor + realce que CORRE ----
+      // Patrón de instrumento: cada 5º tick es "mayor" (más largo y brillante).
+      // Encima, un pulso agudo recorre el anillo (chase) — un punto de luz que da la
+      // vuelta, dirección alterna por anillo, para que el marco lea "escaneando".
+      const chaseDir = (ri % 2 === 0) ? 1 : -1;
+      const chaseSpeed = this.reducedMotion ? 0 : (0.6 + ri * 0.28);
       for (let ti = 0; ti < TICKS; ti++) {
         if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
-        const ang = rotOff + (ti / TICKS) * Math.PI * 2;
-        const isActive = (ti % activePeriod) === activeShift;
-        const tickA = isActive ? baseA * 2.2 : baseA * 0.6;
+        const frac = ti / TICKS;
+        const ang = rotOff + frac * Math.PI * 2;
+        const isMajor = (ti % 5) === 0;
+        // chase ∈ [0,1]: pulso agudo (pow) viajando una vuelta por el anillo.
+        const chase = Math.pow(
+          Math.max(0, Math.sin(frac * Math.PI * 2 - chaseDir * t * chaseSpeed)),
+          6,
+        );
+        const tickA = baseA * (isMajor ? 1.5 : 0.7) + baseA * 2.6 * chase;
         const r0 = r;
-        const r1 = r * (1 + TICK_LEN * (isActive ? 1.5 : 1.0));
+        const r1 = r * (1 + TICK_LEN * (isMajor ? 1.6 : 1.0) + TICK_LEN * 1.3 * chase);
+        // color: base→accent según el chase, así el punto que corre toma el .hi.
+        const mr = br + (ar - br) * chase;
+        const mg = bg + (ag - bg) * chase;
+        const mb = bb + (ab - bb) * chase;
         const cosA = Math.cos(ang);
         const sinA = Math.sin(ang);
         const v = vIdx * 2;
         rpos[v]     = cx + cosA * r0; rpos[v + 1] = cy + sinA * r0;
         rpos[v + 2] = cx + cosA * r1; rpos[v + 3] = cy + sinA * r1;
         const c = vIdx * 4;
-        rcol[c]     = hr; rcol[c + 1] = hg; rcol[c + 2] = hb; rcol[c + 3] = tickA;
-        rcol[c + 4] = hr; rcol[c + 5] = hg; rcol[c + 6] = hb; rcol[c + 7] = tickA;
+        rcol[c]     = mr; rcol[c + 1] = mg; rcol[c + 2] = mb; rcol[c + 3] = tickA;
+        rcol[c + 4] = mr; rcol[c + 5] = mg; rcol[c + 6] = mb; rcol[c + 7] = tickA;
+        vIdx += 2;
+      }
+    }
+
+    // ---- Blip de telemetría orbitando (SIEMPRE activo, también en reposo) ----
+    // Un arco corto y brillante que da vueltas perpetuamente sobre el anillo medio:
+    // dice "el sistema siempre está escaneando", incluso idle. Brillo en campana
+    // (sin(π·f)) para que se desvanezca en los bordes en vez de cortar seco.
+    {
+      const blipR = R * RING_SPEC[1][0] * (1 + breathR);
+      const blipSpeed = this.reducedMotion ? 0.05 : 0.5;
+      const blipCenter = t * blipSpeed;
+      const BLIP_SEGS = 14;
+      const BLIP_SPAN = 0.42;                     // ~24° de arco
+      const blipA = intensity * (0.55 + 0.45 * amp);
+      for (let s = 0; s < BLIP_SEGS; s++) {
+        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
+        const f0 = s / BLIP_SEGS;
+        const f1 = (s + 1) / BLIP_SEGS;
+        const a0 = blipCenter + (f0 - 0.5) * BLIP_SPAN;
+        const a1 = blipCenter + (f1 - 0.5) * BLIP_SPAN;
+        const e0 = Math.sin(f0 * Math.PI);        // envolvente campana
+        const e1 = Math.sin(f1 * Math.PI);
+        const v = vIdx * 2;
+        rpos[v]     = cx + Math.cos(a0) * blipR; rpos[v + 1] = cy + Math.sin(a0) * blipR;
+        rpos[v + 2] = cx + Math.cos(a1) * blipR; rpos[v + 3] = cy + Math.sin(a1) * blipR;
+        const c = vIdx * 4;
+        rcol[c]     = ar; rcol[c + 1] = ag; rcol[c + 2] = ab; rcol[c + 3] = blipA * e0;
+        rcol[c + 4] = ar; rcol[c + 5] = ag; rcol[c + 6] = ab; rcol[c + 7] = blipA * e1;
         vIdx += 2;
       }
     }
