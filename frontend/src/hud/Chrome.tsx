@@ -21,7 +21,7 @@ function Clock() {
   );
 }
 
-export function Chrome({ state, voiceOk = true }: { state: SessionState; voiceOk?: boolean }) {
+export function Chrome({ state }: { state: SessionState; voiceOk?: boolean }) {
   return (
     <div className="hud-chrome" aria-hidden="true">
       <span className="frame-corner corner-tl" />
@@ -39,9 +39,6 @@ export function Chrome({ state, voiceOk = true }: { state: SessionState; voiceOk
           <span className="state-label">{LABEL[state]}</span>
         </div>
         <div className="chrome-meta">
-          {!voiceOk && <span className="meta-novoice">sin voz · abrí en chrome</span>}
-          <span className="meta-hint">espacio · demo</span>
-          <span className="meta-demo">datos de demostración</span>
           <Clock />
         </div>
       </header>

@@ -75,7 +75,7 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
     slottedWidgets.push({
       widget: w,
       slot: kpiSlotStyle(i, kpiWidgets.length),
-      delay: i * 110,
+      delay: i * 130,
     });
   });
 
@@ -83,7 +83,7 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
     slottedWidgets.push({
       widget: w,
       slot: tableSlotStyle(),
-      delay: (kpiWidgets.length + i) * 110,
+      delay: (kpiWidgets.length + i) * 130,
     });
   });
 
@@ -95,7 +95,9 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
           "--ty": `${slot.ty.toFixed(3)}`,
           "--dx": `${slot.dx.toFixed(3)}`,
           "--dy": `${slot.dy.toFixed(3)}`,
-          animationDelay: `${delay}ms`,
+          // Stagger compartido: lo consumen tanto el slot (recorrido) como el
+          // glow/sweep del widget interno, así toda la tarjeta entra al unísono.
+          "--delay": `${delay}ms`,
         } as CSSProperties;
 
         return (

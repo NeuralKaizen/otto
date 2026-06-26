@@ -180,24 +180,6 @@
   color: var(--ink-dim);
 }
 
-.meta-demo {
-  padding: 5px 12px;
-  border: 1px dashed rgba(255, 198, 107, 0.45);
-  border-radius: 4px;
-  color: #ffd99a;
-  font-size: 9px;
-}
-
-.meta-hint {
-  color: var(--ink-dim);
-  font-size: 9px;
-}
-
-.meta-novoice {
-  color: #ff9d7a;
-  font-size: 9px;
-}
-
 .chrome-clock {
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -269,34 +251,68 @@
    * We start at the core center (translate = 0,0 relative to anchor) and move
    * to the final resting position (translate = -50%,-50% centering).
    */
-  animation: slot-emerge 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* easeOutBack: sobrepasa el punto de descanso y se asienta — entrada con energía */
+  animation: slot-emerge 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0ms) both;
 }
 
 /*
  * slot-emerge: fade + blur + translate FROM the core center TOWARD the arc spot.
- * The card starts near the core (negative offset of its own anchor distance)
- * and travels outward to its final position.
- * We use a large inward pull so it "emerges" from the nucleus.
+ * The card starts deep near the core (negative offset of its own anchor distance)
+ * and travels outward, overshooting its spot before settling (easeOutBack).
  */
 @keyframes slot-emerge {
   from {
     opacity: 0;
-    filter: blur(8px);
+    filter: blur(12px);
     /*
-     * Pull back toward core: move the card ~30vmin inward along its radius
+     * Pull back toward core: move the card ~36vmin inward along its radius
      * vector (opposite direction of --dx/--dy).
      * translate(-50%,-50%) is the centering offset, always present.
      */
     transform: translate(
-      calc(-50% + var(--dx, 0) * -28vmin),
-      calc(-50% + var(--dy, 0) * -28vmin)
-    ) scale(0.82);
+      calc(-50% + var(--dx, 0) * -36vmin),
+      calc(-50% + var(--dy, 0) * -36vmin)
+    ) scale(0.78);
   }
   to {
     opacity: 1;
     filter: blur(0);
     transform: translate(-50%, -50%) scale(1);
   }
+}
+
+/*
+ * widget-land: la tarjeta "aterriza" caliente — un halo de acento que se enciende
+ * y se enfría hacia la sombra de reposo. Comparte el --delay del slot para
+ * encender justo cuando la tarjeta llega a su lugar.
+ */
+@keyframes widget-land {
+  0% {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent-soft),
+      0 0 40px var(--accent-soft),
+      0 18px 50px rgba(0, 0, 0, 0.45);
+  }
+  55% {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent-soft),
+      0 0 30px var(--accent-soft),
+      0 18px 50px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    border-color: rgba(150, 185, 225, 0.16);
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(200, 225, 255, 0.08);
+  }
+}
+
+/* line-sweep: la línea de acento superior se dibuja desde el centro hacia afuera */
+@keyframes line-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 /* ── KPI card tweaks for the arc context ─────────────────────────── */
@@ -375,6 +391,8 @@
     0 18px 50px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(200, 225, 255, 0.08);
   overflow: hidden;
+  /* Destello de aterrizaje, escalonado junto al recorrido del slot. */
+  animation: widget-land 0.9s ease-out var(--delay, 0ms) both;
 }
 
 .widget::before {
@@ -386,6 +404,9 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0.7;
+  /* La línea de acento se traza al entrar la tarjeta. */
+  transform-origin: center;
+  animation: line-sweep 0.6s ease-out var(--delay, 0ms) both;
 }
 
 .widget-title {
@@ -457,5 +478,13 @@
     transform: translate(-50%, -50%) !important;
     opacity: 1 !important;
     filter: none !important;
+  }
+  /* Sin destello de aterrizaje ni trazado de línea: estado de reposo directo */
+  .widget,
+  .widget::before {
+    animation: none !important;
+  }
+  .widget::before {
+    transform: scaleX(1) !important;
   }
 }
