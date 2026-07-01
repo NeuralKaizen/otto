@@ -1,12 +1,26 @@
-export function KpiCard({ title, data }: { title: string; data: unknown }) {
+import { DecryptText } from "../DecryptText";
+
+export function KpiCard({
+  title,
+  data,
+  delay = 0,
+}: {
+  title: string;
+  data: unknown;
+  delay?: number;
+}) {
   const value = (data as { value?: number } | null)?.value;
   return (
     <div className="widget kpi-card">
-      <div className="widget-title">{title}</div>
+      <div className="widget-title">
+        <DecryptText text={title} startDelay={delay} />
+      </div>
       {data == null ? (
         <div className="widget-empty">sin datos</div>
       ) : (
-        <div className="kpi-value">{value}</div>
+        <div className="kpi-value">
+          <DecryptText text={String(value)} startDelay={delay} />
+        </div>
       )}
     </div>
   );

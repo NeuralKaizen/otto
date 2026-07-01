@@ -22,4 +22,22 @@ describe("widget registry", () => {
     render(<>{el}</>);
     expect(screen.getByText(/sin datos/i)).toBeInTheDocument();
   });
+
+  it("kpi_card acepta delay y sigue mostrando título y valor finales", () => {
+    const el = widgetFor({ type: "kpi_card", title: "Atrasadas", data: { value: 3 } }, 260);
+    render(<>{el}</>);
+    expect(screen.getByText("Atrasadas")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("table renderiza headers y celdas finales con delay", () => {
+    const el = widgetFor(
+      { type: "table", title: "Equipo", data: [{ persona: "Ana", tareas: 5 }] },
+      130,
+    );
+    render(<>{el}</>);
+    expect(screen.getByText("persona")).toBeInTheDocument();
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
 });

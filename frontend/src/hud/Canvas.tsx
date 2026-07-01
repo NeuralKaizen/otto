@@ -106,7 +106,7 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
             className="hud-slot"
             style={style}
           >
-            {widgetFor(widget)}
+            {widgetFor(widget, delay)}
           </div>
         );
       })}

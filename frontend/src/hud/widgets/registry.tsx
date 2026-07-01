@@ -3,17 +3,17 @@ import type { RenderedWidget } from "../../voice/types";
 import { KpiCard } from "./KpiCard";
 import { TableWidget } from "./TableWidget";
 
-type Renderer = (w: RenderedWidget) => ReactElement;
+type Renderer = (w: RenderedWidget, delay: number) => ReactElement;
 
 const REGISTRY: Record<string, Renderer> = {
-  kpi_card: (w) => <KpiCard title={w.title} data={w.data} />,
-  table: (w) => <TableWidget title={w.title} data={w.data} />,
+  kpi_card: (w, delay) => <KpiCard title={w.title} data={w.data} delay={delay} />,
+  table: (w, delay) => <TableWidget title={w.title} data={w.data} delay={delay} />,
 };
 
-export function widgetFor(w: RenderedWidget): ReactElement {
+export function widgetFor(w: RenderedWidget, delay = 0): ReactElement {
   const renderer = REGISTRY[w.type];
   if (!renderer) {
     return <div className="widget widget-unknown">sin renderer para "{w.type}"</div>;
   }
-  return renderer(w);
+  return renderer(w, delay);
 }
