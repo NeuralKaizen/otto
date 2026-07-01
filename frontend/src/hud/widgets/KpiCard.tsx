@@ -15,7 +15,7 @@ export function KpiCard({
       <div className="widget-title">
         <DecryptText text={title} startDelay={delay} />
       </div>
-      {data == null ? (
+      {value == null ? (
         <div className="widget-empty">sin datos</div>
       ) : (
         <div className="kpi-value">

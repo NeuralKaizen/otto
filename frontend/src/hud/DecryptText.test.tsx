@@ -29,4 +29,22 @@ describe("DecryptText component", () => {
     unmount();
     expect(cancelSpy).toHaveBeenCalled();
   });
+
+  it("updates display when text prop changes without remount (normal motion)", () => {
+    const { rerender } = render(<DecryptText text="uno" startDelay={0} />);
+    expect(screen.getByText("uno")).toBeInTheDocument();
+    rerender(<DecryptText text="dos" startDelay={0} />);
+    expect(screen.getByText("dos")).toBeInTheDocument();
+  });
+
+  it("updates display on text change under reduced motion", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      () => ({ matches: true, addEventListener() {}, removeEventListener() {} }),
+    );
+    const { rerender } = render(<DecryptText text="10" startDelay={0} />);
+    expect(screen.getByText("10")).toBeInTheDocument();
+    rerender(<DecryptText text="20" startDelay={0} />);
+    expect(screen.getByText("20")).toBeInTheDocument();
+  });
 });

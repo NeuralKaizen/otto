@@ -40,4 +40,17 @@ describe("widget registry", () => {
     expect(screen.getByText("Ana")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
   });
+
+  it("kpi_card con objeto sin value renderiza sin datos (no 'undefined')", () => {
+    const el = widgetFor({ type: "kpi_card", title: "Atrasadas", data: {} });
+    render(<>{el}</>);
+    expect(screen.getByText(/sin datos/i)).toBeInTheDocument();
+    expect(screen.queryByText("undefined")).not.toBeInTheDocument();
+  });
+
+  it("kpi_card con value 0 renderiza 0 (no lo trata como faltante)", () => {
+    const el = widgetFor({ type: "kpi_card", title: "Atrasadas", data: { value: 0 } });
+    render(<>{el}</>);
+    expect(screen.getByText("0")).toBeInTheDocument();
+  });
 });
