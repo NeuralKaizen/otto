@@ -282,19 +282,49 @@
 }
 
 /*
- * widget-land: la tarjeta "aterriza" caliente — un halo de acento que se enciende
- * y se enfría hacia la sombra de reposo. Comparte el --delay del slot para
- * encender justo cuando la tarjeta llega a su lugar.
+ * widget-materialize: la tarjeta "bootea" como un holograma —
+ * flicker de proyector (opacity en pasos irregulares), split RGB
+ * (drop-shadow cyan/magenta desfasado que converge a 0), spikes de brillo,
+ * y micro-jitter (translate sub-pixel que se apaga). Termina en el estado de
+ * reposo (border/box-shadow frío). Comparte el --delay del slot.
  */
-@keyframes widget-land {
+@keyframes widget-materialize {
   0% {
+    opacity: 0;
+    transform: translate(-2px, 1px);
+    filter:
+      drop-shadow(-3px 0 rgba(255, 0, 90, 0.6))
+      drop-shadow(3px 0 rgba(0, 200, 255, 0.6))
+      brightness(1.8);
     border-color: var(--accent);
     box-shadow:
       0 0 0 1px var(--accent-soft),
-      0 0 40px var(--accent-soft),
+      0 0 44px var(--accent-soft),
       0 18px 50px rgba(0, 0, 0, 0.45);
   }
-  55% {
+  8%  { opacity: 0.65; transform: translate(2px, -1px); }
+  12% { opacity: 0.18; }
+  20% {
+    opacity: 1;
+    transform: translate(-1px, 1px);
+    filter:
+      drop-shadow(-2px 0 rgba(255, 0, 90, 0.5))
+      drop-shadow(2px 0 rgba(0, 200, 255, 0.5))
+      brightness(1.35);
+  }
+  28% { opacity: 0.5; }
+  34% { opacity: 1; transform: translate(1px, 0); }
+  46% {
+    opacity: 0.82;
+    transform: translate(-1px, 0);
+    filter:
+      drop-shadow(-1px 0 rgba(255, 0, 90, 0.35))
+      drop-shadow(1px 0 rgba(0, 200, 255, 0.35))
+      brightness(1.15);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(0.5px, 0);
     border-color: var(--accent);
     box-shadow:
       0 0 0 1px var(--accent-soft),
@@ -302,10 +332,36 @@
       0 18px 50px rgba(0, 0, 0, 0.45);
   }
   100% {
+    opacity: 1;
+    transform: translate(0, 0);
+    filter:
+      drop-shadow(0 0 0 transparent)
+      drop-shadow(0 0 0 transparent)
+      brightness(1);
     border-color: rgba(150, 185, 225, 0.16);
     box-shadow:
       0 18px 50px rgba(0, 0, 0, 0.45),
       inset 0 1px 0 rgba(200, 225, 255, 0.08);
+  }
+}
+
+/* text-fringe: aberración cromática sobre el texto al desencriptarse; decae a
+ * la sombra de reposo propia del elemento (sin fill-mode: no pisa el reposo). */
+@keyframes text-fringe {
+  0% {
+    text-shadow:
+      -2px 0 rgba(255, 0, 90, 0.85),
+      2px 0 rgba(0, 200, 255, 0.85);
+  }
+  60% {
+    text-shadow:
+      -1px 0 rgba(255, 0, 90, 0.4),
+      1px 0 rgba(0, 200, 255, 0.4);
+  }
+  100% {
+    text-shadow:
+      0 0 0 rgba(255, 0, 90, 0),
+      0 0 0 rgba(0, 200, 255, 0);
   }
 }
 
@@ -391,8 +447,8 @@
     0 18px 50px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(200, 225, 255, 0.08);
   overflow: hidden;
-  /* Destello de aterrizaje, escalonado junto al recorrido del slot. */
-  animation: widget-land 0.9s ease-out var(--delay, 0ms) both;
+  /* Materialización holográfica, escalonada junto al recorrido del slot. */
+  animation: widget-materialize 0.85s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
 }
 
 .widget::before {
@@ -426,6 +482,15 @@
   text-shadow: 0 0 24px var(--accent-soft);
   font-variant-numeric: tabular-nums;
   transition: color 0.6s ease;
+}
+
+/* El texto hereda el fringe holográfico mientras se descifra. `--delay` se
+ * hereda del .hud-slot. Sin fill-mode → vuelve a su text-shadow de reposo. */
+.widget-title,
+.kpi-value,
+.table-widget th,
+.table-widget td {
+  animation: text-fringe 0.7s ease-out var(--delay, 0ms);
 }
 
 .widget-empty,
@@ -486,5 +551,11 @@
   }
   .widget::before {
     transform: scaleX(1) !important;
+  }
+  .widget-title,
+  .kpi-value,
+  .table-widget th,
+  .table-widget td {
+    animation: none !important;
   }
 }
