@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { scrambleFrame, GLYPH_POOL } from "./DecryptText";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import { scrambleFrame, GLYPH_POOL, DecryptText } from "./DecryptText";
 
 describe("scrambleFrame", () => {
   it("progress 1 resolves to the exact final text", () => {
@@ -33,5 +35,33 @@ describe("scrambleFrame", () => {
   it("clamps out-of-range progress", () => {
     expect(scrambleFrame("xy", 2, GLYPH_POOL, 0)).toBe("xy");
     expect(scrambleFrame("xy", -1, GLYPH_POOL, 0)).toHaveLength(2);
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe("DecryptText component", () => {
+  it("renders the final text on initial mount (synchronous)", () => {
+    render(<DecryptText text="Atrasadas" startDelay={0} />);
+    expect(screen.getByText("Atrasadas")).toBeInTheDocument();
+  });
+
+  it("renders final text immediately under reduced motion", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      () => ({ matches: true, addEventListener() {}, removeEventListener() {} }),
+    );
+    render(<DecryptText text="123" startDelay={0} />);
+    expect(screen.getByText("123")).toBeInTheDocument();
+  });
+
+  it("cancels its animation frame on unmount", () => {
+    const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
+    const { unmount } = render(<DecryptText text="otto" startDelay={0} />);
+    unmount();
+    expect(cancelSpy).toHaveBeenCalled();
   });
 });

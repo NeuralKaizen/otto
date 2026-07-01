@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import type { ReactElement } from "react";
+
 // Glyph pool for the decrypt scramble: katakana + latin + digits + symbols.
 // The katakana gives the "terminal desencriptando" texture; latin/digits keep
 // numbers legible mid-scramble; symbols add sci-fi noise.
@@ -29,4 +32,61 @@ export function scrambleFrame(
     out += pool[idx];
   }
   return out;
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+}
+
+// Renders `text`, then scrambles → resolves via requestAnimationFrame.
+// Initial state is the FINAL text so synchronous tests (and the invisible
+// entrance frames) never show garbage; the scramble only begins once the rAF
+// loop runs in the browser.
+export function DecryptText({
+  text,
+  startDelay = 0,
+  duration = 800,
+}: {
+  text: string;
+  startDelay?: number;
+  duration?: number;
+}): ReactElement {
+  const [display, setDisplay] = useState(text);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setDisplay(text);
+      return;
+    }
+    let raf = 0;
+    let start = 0;
+    let tick = 0;
+    let cancelled = false;
+
+    const step = (ts: number) => {
+      if (cancelled) return;
+      if (start === 0) start = ts;
+      const elapsed = ts - start;
+      if (elapsed < startDelay) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      const progress = Math.min(1, (elapsed - startDelay) / duration);
+      tick += 1;
+      setDisplay(scrambleFrame(text, progress, GLYPH_POOL, tick));
+      if (progress < 1) {
+        raf = requestAnimationFrame(step);
+      } else {
+        setDisplay(text); // guarantee the exact final value
+      }
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [text, startDelay, duration]);
+
+  return <>{display}</>;
 }
