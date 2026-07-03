@@ -54,7 +54,11 @@ export class ElevenLabsSpeaker implements Speaker {
       session.degraded = true;
       console.warn("[tts] ElevenLabs falló, degrado a voz del navegador:", reason);
       this.cleanup();
-      this.fallback.speak(text, finish);
+      try {
+        this.fallback.speak(text, finish);
+      } catch {
+        finish(); // el fallback también falló: destrabar el FSM igual
+      }
     };
 
     this.fetchImpl(`${this.apiUrl}/voice/tts`, {

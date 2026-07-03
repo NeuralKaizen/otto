@@ -40,16 +40,16 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
-function setup(fetchMock: ReturnType<typeof vi.fn> = audioFetch(), playResult: Promise<void> = Promise.resolve()) {
+function setup(fetchMock: ReturnType<typeof vi.fn> = audioFetch(), playResult: Promise<void> = Promise.resolve(), customFallback?: Speaker) {
   let audio: FakeAudio | null = null;
-  const fallback = new FakeFallback();
+  const fallback = customFallback ?? new FakeFallback();
   const speaker = new ElevenLabsSpeaker({
     apiUrl: "http://x",
     fetchImpl: fetchMock as unknown as typeof fetch,
     createAudio: (src) => (audio = new FakeAudio(src, playResult)) as unknown as HTMLAudioElement,
-    fallback,
+    fallback: fallback as unknown as Speaker,
   });
-  return { speaker, fallback, fetchMock, get audio() { return audio; } };
+  return { speaker, fallback: fallback as unknown as FakeFallback, fetchMock, get audio() { return audio; } };
 }
 
 // Deja drenar la cadena de promesas interna del speaker.
@@ -138,6 +138,19 @@ describe("ElevenLabsSpeaker", () => {
     expect(ctx.audio).toBeNull();
     expect(onEnd).not.toHaveBeenCalled();
     expect(ctx.fallback.spoken).toEqual([]);
+  });
+
+  it("si el fallback lanza sincrónicamente, onEnd igual se dispara una sola vez", async () => {
+    const bad = vi.fn().mockRejectedValue(new Error("network down"));
+    const throwingFallback: Speaker = {
+      speak() { throw new Error("no speechSynthesis"); },
+      stop() {},
+    };
+    const ctx = setup(bad, Promise.resolve(), throwingFallback);
+    const onEnd = vi.fn();
+    ctx.speaker.speak("hola", onEnd);
+    await flush();
+    expect(onEnd).toHaveBeenCalledTimes(1);
   });
 });
 
