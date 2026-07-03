@@ -110,4 +110,30 @@ describe("agentClient", () => {
     expect(sent).toMatchObject({ type: "approval_decision", approvalId: "a1", approved: false });
     client.dispose();
   });
+
+  it("rejects an in-flight converse when disposed", async () => {
+    const { client } = setup();
+    const p = client.converse("x");
+    await Promise.resolve();
+    client.dispose();
+    await expect(p).rejects.toThrow(/disposed/);
+  });
+
+  it("rejects a second converse while one is in progress", async () => {
+    const { client, sock } = setup();
+    const p1 = client.converse("uno");
+    await Promise.resolve();
+    await expect(client.converse("dos")).rejects.toThrow(/in progress/);
+    sock.emit({ type: "message_started", messageId: "m1", provider: "openai", timestamp: "t" });
+    sock.emit({ type: "message_done", messageId: "m1", content: "ok", timestamp: "t" });
+    await expect(p1).resolves.toEqual({ narration: "ok", widgets: [] });
+    client.dispose();
+  });
+
+  it("rejects when fetch throws (network error)", async () => {
+    const throwFetch = vi.fn().mockRejectedValue(new Error("network down"));
+    const { client } = setup(throwFetch);
+    await expect(client.converse("x")).rejects.toThrow(/network down/);
+    client.dispose();
+  });
 });

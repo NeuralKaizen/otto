@@ -108,13 +108,24 @@ export function createAgentClient(options: AgentClientOptions = {}): AgentClient
           });
         }
         break;
-      case "approval_requested":
+      case "approval_requested": {
+        const run = pending;
         sendJson({ type: "approval_decision", approvalId: e.approvalId, approved: false, reason: "approvals not wired in HUD yet" });
-        settleResolve({ narration: APPROVAL_DECLINE_NARRATION, widgets: [] });
+        run.ready.then(() => {
+          if (pending !== run) return;
+          settleResolve({ narration: APPROVAL_DECLINE_NARRATION, widgets: [] });
+        });
         break;
-      case "error":
-        settleReject(new Error(e.error));
+      }
+      case "error": {
+        const run = pending;
+        const message = e.error;
+        run.ready.then(() => {
+          if (pending !== run) return;
+          settleReject(new Error(message));
+        });
         break;
+      }
       default:
         break;
     }
