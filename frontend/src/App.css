@@ -137,42 +137,6 @@
   font-size: 9px;
 }
 
-.chrome-state {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 18px;
-  border: 1px solid var(--accent-line);
-  border-radius: 999px;
-  background: rgba(4, 9, 16, 0.55);
-  backdrop-filter: blur(6px);
-  transition: border-color 0.6s ease;
-}
-
-.state-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
-  animation: dot-pulse 2.4s ease-in-out infinite;
-  transition: background 0.6s ease;
-}
-
-.hud[data-state="processing"] .state-dot { animation-duration: 0.7s; }
-.hud[data-state="listening"] .state-dot,
-.hud[data-state="speaking"] .state-dot { animation-duration: 1.3s; }
-
-@keyframes dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.72); }
-}
-
-.state-label {
-  color: var(--accent);
-  transition: color 0.6s ease;
-}
-
 .chrome-meta {
   display: flex;
   align-items: center;
@@ -211,6 +175,17 @@
  *   --dx / --dy  unit vector pointing outward (for the reveal animation)
  */
 .hud-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * Ráfaga de partículas núcleo → banner. Canvas transparente que cubre el
+ * viewport, primer hijo de .hud-canvas → pinta SOBRE la escena WebGL y DEBAJO
+ * de las tarjetas (que vienen después en el DOM). No captura eventos.
+ */
+.banner-particles {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -557,5 +532,209 @@
   .table-widget th,
   .table-widget td {
     animation: none !important;
+  }
+}
+
+/* ===================================================================
+   Cromo Jarvis: anillos orbitales · telemetría · haces núcleo→banner
+   =================================================================== */
+
+/* ── Sistema de anillos orbitales ──────────────────────────────────── */
+.orbital-rings {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66vmin;
+  height: 66vmin;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 4; /* sobre la atmósfera, debajo de los banners (z-8) */
+}
+.orbital-rings svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* origen de rotación al centro del viewBox para todo lo que gira */
+.oring,
+.tick-ring,
+.orbit-grp {
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.oring {
+  fill: none;
+  stroke: var(--accent);
+  transition: stroke 0.6s ease;
+}
+.oring-a {
+  stroke-opacity: 0.22;
+  stroke-width: 1;
+  stroke-dasharray: 2 6;
+  animation: orbit-spin 60s linear infinite;
+}
+.oring-b {
+  stroke-opacity: 0.1;
+  stroke-width: 1;
+}
+.oring-c {
+  stroke-opacity: 0.18;
+  stroke-width: 1;
+  stroke-dasharray: 14 10;
+  animation: orbit-spin 90s linear infinite reverse;
+}
+
+.tick-ring {
+  animation: orbit-spin 140s linear infinite;
+}
+.otick {
+  stroke: var(--accent);
+  stroke-opacity: 0.26;
+  stroke-width: 1;
+  transition: stroke 0.6s ease;
+}
+.otick-long {
+  stroke-opacity: 0.5;
+}
+
+.orbit-path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.16;
+  stroke-width: 1;
+  transition: stroke 0.6s ease;
+}
+.orbit-1 {
+  animation: orbit-spin 16s linear infinite;
+}
+.orbit-2 {
+  animation: orbit-spin 24s linear infinite reverse;
+}
+.orbit-node {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent));
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Readouts de telemetría en esquinas ────────────────────────────── */
+.hud-telemetry {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.telemetry-block {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+}
+.tele-tr {
+  top: 76px;
+  right: 30px;
+  text-align: right;
+  align-items: flex-end;
+}
+.tele-bl {
+  bottom: 30px;
+  left: 30px;
+}
+.tele-br {
+  bottom: 30px;
+  right: 30px;
+  text-align: right;
+  align-items: flex-end;
+}
+.tele-key {
+  color: var(--accent);
+  opacity: 0.85;
+  transition: color 0.6s ease;
+}
+.tele-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: tele-blink 2s ease-in-out infinite;
+}
+@keyframes tele-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+.tele-scan {
+  width: 74px;
+  height: 1px;
+  margin-top: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+  animation: tele-scanmove 2.6s ease-in-out infinite;
+}
+@keyframes tele-scanmove {
+  0%, 100% { transform: translateX(-12px); opacity: 0.2; }
+  50% { transform: translateX(12px); opacity: 0.6; }
+}
+
+/* ── Haces de conexión núcleo → banner ─────────────────────────────── */
+.banner-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.blink {
+  opacity: 0;
+  animation: blink-in 0.5s ease var(--delay, 0ms) forwards;
+}
+.blink-line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+  stroke-dasharray: 3 7;
+  animation: blink-dash 0.9s linear infinite;
+  transition: stroke 0.6s ease;
+}
+.blink-tip {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent));
+}
+@keyframes blink-in {
+  to { opacity: 0.6; }
+}
+@keyframes blink-dash {
+  to { stroke-dashoffset: -10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oring-a,
+  .oring-c,
+  .tick-ring,
+  .orbit-1,
+  .orbit-2,
+  .tele-dot,
+  .tele-scan,
+  .blink-line {
+    animation: none !important;
+  }
+  .blink {
+    animation: none !important;
+    opacity: 0.6;
   }
 }

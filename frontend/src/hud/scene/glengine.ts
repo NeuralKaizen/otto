@@ -834,53 +834,50 @@ export class OttoGLEngine {
       } else {
         // processing: escaneo / fetch de información estilo Jarvis.
         // Las partículas fluyen HACIA ADENTRO en oleadas continuas —
-        // "fragmentos de datos siendo absorbidos por el núcleo".
+        // "fragmentos de datos siendo absorbidos por el núcleo" — con PARCHES DE
+        // DENSIDAD que derivan por la nube mientras se mueve, para que no se lea
+        // plana (zonas más densas/brillantes que la recorren).
         //
-        // Constantes y su justificación:
-        //   STREAM_SPEED = 0.55  — velocidad de barrido (ciclo ~1.8 s); suficientemente
-        //                          rápido para leer "actividad" sin ser frenético.
-        //   EXTRA_RAD    = 1.6   — distancia máxima de origen (1.6 × R fuera de la esfera)
-        //                          para que los fragmentos lleguen desde lejos.
-        //   NEAR_THRESH  = 0.08  — fracción de ciclo donde la partícula "llegó"; se asienta
-        //                          en el núcleo dando coherencia visual de masa central.
+        //   STREAM_SPEED = 0.55  — velocidad de barrido (ciclo ~1.8 s).
+        //   EXTRA_RAD    = 1.6   — distancia máxima de origen (1.6 × R fuera de la esfera).
+        //   NEAR_THRESH  = 0.08  — fracción de ciclo donde la partícula "llegó".
         //
-        // sweep s ∈ [0,1): 1 = lejos (recién salida), 0 = llegó al núcleo.
-        // Fraccional por partícula via seed[i] → oleadas desfasadas ≠ simultáneas.
-        const STREAM_SPEED = 0.55;  // velocidad de la onda de entrada (ciclos/s)
-        const EXTRA_RAD    = 1.6;   // cuántos R de distancia extra en el origen
-        const NEAR_THRESH  = 0.08;  // s bajo este umbral ≡ partícula "en el núcleo"
+        // sweep s ∈ (0,1]: 1 = lejos (recién salida), 0 = llegó al núcleo.
+        const STREAM_SPEED = 0.55;
+        const EXTRA_RAD    = 1.6;
+        const NEAR_THRESH  = 0.08;
 
-        // s va de 1→0 repetidamente (módulo) desfasado por seed[i]
-        const raw = (t * STREAM_SPEED + this.seed[i] / (Math.PI * 2));
+        const raw = t * STREAM_SPEED + this.seed[i] / (Math.PI * 2);
         const s = 1 - (raw - Math.floor(raw)); // s ∈ (0, 1], grande = lejos
 
         // radio: parte lejos (sphR[i] + EXTRA_RAD) y se acerca suavemente al núcleo
         const distFrac = s * s; // curvatura cuadrática → aceleración al llegar
         const rad = R * (this.sphR[i] + distFrac * EXTRA_RAD);
 
-        // dirección: usa dir[i] (posición fija en la esfera) para que cada
-        // partícula tenga su propia trayectoria radial → cobertura esférica completa
+        // dirección fija en la esfera → trayectoria radial propia (cobertura total)
         const dx = this.dir[i3];
         const dy = this.dir[i3 + 1];
         const dz = this.dir[i3 + 2];
-        // rotación Y (sincronizada con rotY) para que el campo gire con el cuerpo
         const rx = dx * cosY + dz * sinY;
         const rz = -dx * sinY + dz * cosY;
         tx = rx * rad;
         ty = dy * rad;
         tz = rz * rad;
 
-        // Partícula "cerca" del núcleo (s bajo): vive en el núcleo, muy brillante
-        // Partícula "lejos" (s alto): tenue, solo se ve al acercarse
+        // Parches de densidad móviles: lóbulos suaves sobre la dirección fija que
+        // derivan con el tiempo → zonas de la nube más densas/brillantes que la
+        // recorren mientras se mueve. dens ∈ [0,1].
+        const lobe =
+          Math.sin(dx * 2.3 + dy * 1.7 + t * 0.9) *
+          Math.cos(dz * 2.1 - dy * 1.3 + t * 0.6);
+        const dens = Math.max(0, lobe);
+
         const nearness = 1 - s;                         // 0 = lejos, 1 = llegó
-        const atNucleus = s < NEAR_THRESH ? 1 : 0;      // booleano en forma de float
-        // Brilla más conforme se acerca; las que llegaron son el núcleo coherente
-        bright = 0.45 + nearness * 0.9 + atNucleus * 0.4 + amp * 0.25;
-        // Alpha: invisible al arrancar lejos, máximo al llegar
+        const atNucleus = s < NEAR_THRESH ? 1 : 0;
+        bright = (0.45 + nearness * 0.9 + atNucleus * 0.4 + amp * 0.25) * (0.85 + 0.6 * dens);
         const arrivalAlpha = Math.max(0, 1 - s * s * 3);  // fade-in rápido
-        alpha  = (0.25 + arrivalAlpha * 0.65) * bodyA;
-        // Tamaño: más grande en el núcleo, más pequeño mientras viaja
-        size = this.size0[i] * (0.6 + nearness * 0.55);
+        alpha  = (0.25 + arrivalAlpha * 0.65) * bodyA * (0.8 + 0.5 * dens);
+        size = this.size0[i] * (0.6 + nearness * 0.55) * (0.9 + 0.5 * dens);
       }
 
       // ---- resorte + turbulencia ----
@@ -1105,66 +1102,6 @@ export class OttoGLEngine {
         rcol[c]     = lr; rcol[c + 1] = lg; rcol[c + 2] = lb; rcol[c + 3] = arcA;
         rcol[c + 4] = lr; rcol[c + 5] = lg; rcol[c + 6] = lb; rcol[c + 7] = arcA;
         vIdx += 2;
-      }
-    }
-
-    // ---- Barrido de radar (solo en processing) ----
-    // Línea radial que gira rápido (t×3) desde el centro hasta el anillo exterior,
-    // más un trail de 5 segmentos que se desvanece detrás. Emula escáner Jarvis.
-    // No aloca: escribe directamente en rpos/rcol preallocated (el presupuesto
-    // extra de MAX_RING_VERTS = 1280 cubre: 12 verts de barrido holgadamente).
-    if (this.mode === "processing") {
-      // Velocidad del barrido: 3 rad/s (≈0.5 rev/s) con reducedMotion atenuado
-      const SWEEP_SPEED  = this.reducedMotion ? 1.2 : 3.0;
-      const TRAIL_SEGS   = 5;    // segmentos del trail detrás del frente
-      const TRAIL_SPAN   = 0.55; // ángulo total del trail (radianes) — ~31°
-      const outerR = R * RING_SPEC[RING_SPEC.length - 1][0]; // radio del anillo exterior
-      const sweepAng = t * SWEEP_SPEED * motionScale;
-
-      // Colores del barrido: Aurora processing.hi (verde neón cian) para contraste
-      const SWR = PALETTE.processing.hi[0] / 255; // 120/255
-      const SWG = PALETTE.processing.hi[1] / 255; // 255/255
-      const SWB = PALETTE.processing.hi[2] / 255; // 180/255
-
-      for (let seg = 0; seg < TRAIL_SEGS; seg++) {
-        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
-        // seg=0 es el frente (más brillante); seg=TRAIL_SEGS es la cola (más tenue)
-        const frac  = seg / TRAIL_SEGS;            // 0 = frente, 1 = cola
-        const ang   = sweepAng - frac * TRAIL_SPAN;
-        const angN  = sweepAng - (frac + 1 / TRAIL_SEGS) * TRAIL_SPAN;
-        // Alpha: frente 0.85, cola cae linealmente a 0.04
-        const segA  = (1 - frac) * (1 - frac) * (this.reducedMotion ? 0.35 : 0.85);
-        const cosA  = Math.cos(ang);
-        const sinA  = Math.sin(ang);
-        const cosN  = Math.cos(angN);
-        const sinN  = Math.sin(angN);
-
-        // vert par: punto en el anillo exterior en ang vs angN (LINES necesita pares)
-        // Para el frente (seg=0) dibujamos línea centro→borde; para trail dibujamos
-        // arco entre ángulos consecutivos en el borde exterior (efecto de "sweep").
-        if (seg === 0) {
-          // Línea radial central: desde el centro hasta el borde exterior
-          const v = vIdx * 2;
-          rpos[v]     = cx;
-          rpos[v + 1] = cy;
-          rpos[v + 2] = cx + cosA * outerR;
-          rpos[v + 3] = cy + sinA * outerR;
-          const c = vIdx * 4;
-          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA * 0.5;
-          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA;
-          vIdx += 2;
-        } else {
-          // Arco del trail: segmento de arco entre ang y angN en el borde exterior
-          const v = vIdx * 2;
-          rpos[v]     = cx + cosA * outerR;
-          rpos[v + 1] = cy + sinA * outerR;
-          rpos[v + 2] = cx + cosN * outerR;
-          rpos[v + 3] = cy + sinN * outerR;
-          const c = vIdx * 4;
-          rcol[c]     = SWR; rcol[c + 1] = SWG; rcol[c + 2] = SWB; rcol[c + 3] = segA;
-          rcol[c + 4] = SWR; rcol[c + 5] = SWG; rcol[c + 6] = SWB; rcol[c + 7] = segA * 0.7;
-          vIdx += 2;
-        }
       }
     }
 

@@ -1,12 +1,4 @@
 import { useEffect, useState } from "react";
-import type { SessionState } from "../voice/types";
-
-const LABEL: Record<SessionState, string> = {
-  idle: "en reposo",
-  listening: "escuchando",
-  processing: "pensando",
-  speaking: "hablando",
-};
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -21,7 +13,7 @@ function Clock() {
   );
 }
 
-export function Chrome({ state }: { state: SessionState; voiceOk?: boolean }) {
+export function Chrome() {
   return (
     <div className="hud-chrome" aria-hidden="true">
       <span className="frame-corner corner-tl" />
@@ -33,10 +25,6 @@ export function Chrome({ state }: { state: SessionState; voiceOk?: boolean }) {
         <div className="chrome-brand">
           <span className="brand-mark">OTTO</span>
           <span className="brand-sub">acelera talent · instancia 0</span>
-        </div>
-        <div className="chrome-state">
-          <span className="state-dot" />
-          <span className="state-label">{LABEL[state]}</span>
         </div>
         <div className="chrome-meta">
           <Clock />

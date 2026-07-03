@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SessionState, RenderedWidget } from "./voice/types";
 import { useSession } from "./voice/useSession";
-import {
-  WebSpeechWakeWord,
-  WebSpeechTranscriber,
-  speechRecognitionSupported,
-} from "./voice/adapters/webSpeech";
+import { WebSpeechWakeWord, WebSpeechTranscriber } from "./voice/adapters/webSpeech";
 import { SpeechSynthesisSpeaker } from "./voice/adapters/speechSynthesis";
 import { callConverse } from "./api/converse";
 import { OttoScene } from "./hud/scene/OttoScene";
@@ -13,6 +9,8 @@ import { useMicLevel } from "./hud/useMicLevel";
 import { Chrome } from "./hud/Chrome";
 import { Captions } from "./hud/Captions";
 import { Canvas } from "./hud/Canvas";
+import { OrbitalRings } from "./hud/OrbitalRings";
+import { HudTelemetry } from "./hud/HudTelemetry";
 import "./App.css";
 
 const ORDER: SessionState[] = ["idle", "listening", "processing", "speaking"];
@@ -89,9 +87,11 @@ export default function App() {
   return (
     <div className="hud" data-state={state}>
       <OttoScene state={state} getAmplitude={getMicLevel} />
+      <OrbitalRings />
       <div className="hud-vignette" aria-hidden="true" />
       <div className="hud-grain" aria-hidden="true" />
-      <Chrome state={state} voiceOk={speechRecognitionSupported} />
+      <Chrome />
+      <HudTelemetry />
       <main className="hud-stage">
         <Canvas widgets={widgets} />
         <Captions text={caption} />

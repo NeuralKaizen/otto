@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import type { RenderedWidget } from "../voice/types";
 import { widgetFor } from "./widgets/registry";
+import { BannerParticles, type BurstTarget } from "./BannerParticles";
+import { BannerLinks, type LinkTarget } from "./BannerLinks";
 
 // ─── Arc placement ──────────────────────────────────────────────────────────
 //
@@ -87,8 +89,20 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
     });
   });
 
+  // One particle burst + one connection beam per banner, from the core.
+  const targets = slottedWidgets.map(({ widget, slot, delay }, i) => ({
+    key: `${widget.type}-${widget.title}-${i}`,
+    tx: slot.tx,
+    ty: slot.ty,
+    delay,
+  }));
+  const bursts: BurstTarget[] = targets;
+  const links: LinkTarget[] = targets;
+
   return (
     <div className="hud-canvas">
+      <BannerLinks links={links} />
+      <BannerParticles bursts={bursts} />
       {slottedWidgets.map(({ widget, slot, delay }, i) => {
         const style = {
           "--tx": `${slot.tx.toFixed(3)}`,
