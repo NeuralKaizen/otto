@@ -110,13 +110,22 @@ export function useSession(deps: Deps) {
   // current version.
   dispatchRef.current = dispatch;
 
+  // El wake detector solo escucha en idle: Chrome permite UN SpeechRecognition
+  // activo por página, así que si siguiera vivo durante la sesión, su
+  // auto-restart (onend → safeStart) mataría al transcriptor y la consulta
+  // nunca llegaría al agente. Se reanuda al volver a idle.
   useEffect(() => {
-    deps.wake.start(() => dispatch({ kind: "wakeDetected" }));
-    return () => {
-      deps.wake.stop();
+    if (state !== "idle") return;
+    deps.wake.start(() => dispatchRef.current({ kind: "wakeDetected" }));
+    return () => deps.wake.stop();
+  }, [state, deps]);
+
+  useEffect(
+    () => () => {
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    };
-  }, [deps, dispatch]);
+    },
+    [],
+  );
 
   return useMemo(
     () => ({

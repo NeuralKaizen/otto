@@ -33,7 +33,13 @@ function safeStart(rec: any) {
   }
 }
 
-// Wake word: reconocimiento continuo que busca "wattson" en el transcript.
+// Wake word: el reconocimiento es-AR entiende "Alfred" o "Alfredo"
+// ("wattson" lo transcribía como "whatsapp", por eso el cambio de nombre).
+export function isWakeWord(transcript: string): boolean {
+  return transcript.toLowerCase().includes("alfred");
+}
+
+// Wake word: reconocimiento continuo que busca la palabra de activación.
 export class WebSpeechWakeWord implements WakeWordDetector {
   private rec: any;
   start(onWake: () => void) {
@@ -41,10 +47,10 @@ export class WebSpeechWakeWord implements WakeWordDetector {
     if (!this.rec) return;
     this.rec.onresult = (e: any) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript.toLowerCase();
-        if (t.includes("wattson")) onWake();
+        if (isWakeWord(e.results[i][0].transcript)) onWake();
       }
     };
+    this.rec.onerror = (e: any) => console.warn("[wake] error:", e?.error, e?.message ?? "");
     this.rec.onend = () => { if (this.rec) safeStart(this.rec); }; // reinicia
     safeStart(this.rec);
   }

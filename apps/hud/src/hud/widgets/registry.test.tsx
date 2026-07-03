@@ -53,4 +53,39 @@ describe("widget registry", () => {
     render(<>{el}</>);
     expect(screen.getByText("0")).toBeInTheDocument();
   });
+
+  it("metric_chart renderiza labels, valores y total", () => {
+    const el = widgetFor({
+      type: "metric_chart",
+      title: "Posts por plataforma",
+      data: {
+        points: [
+          { name: "instagram", value: 48 },
+          { name: "tiktok", value: 12400 },
+        ],
+        unit: "posts",
+        subtitle: "@luciano · instagram",
+      },
+    });
+    render(<>{el}</>);
+    expect(screen.getByText("Posts por plataforma")).toBeInTheDocument();
+    expect(screen.getByText("@luciano · instagram")).toBeInTheDocument();
+    expect(screen.getByText("instagram")).toBeInTheDocument();
+    expect(screen.getByText("48")).toBeInTheDocument();
+    // "12.4K" aparece dos veces: valor de la barra (12400) y total (48+12400=12448)
+    expect(screen.getAllByText("12.4K")).toHaveLength(2);
+    expect(screen.getByText("posts")).toBeInTheDocument();
+  });
+
+  it("metric_chart con data malformado renderiza sin datos", () => {
+    const el = widgetFor({ type: "metric_chart", title: "Posts", data: { points: "nope" } });
+    render(<>{el}</>);
+    expect(screen.getByText(/sin datos/i)).toBeInTheDocument();
+  });
+
+  it("metric_chart con points vacío renderiza sin datos", () => {
+    const el = widgetFor({ type: "metric_chart", title: "Posts", data: { points: [] } });
+    render(<>{el}</>);
+    expect(screen.getByText(/sin datos/i)).toBeInTheDocument();
+  });
 });

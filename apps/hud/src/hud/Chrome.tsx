@@ -23,8 +23,8 @@ export function Chrome() {
 
       <header className="chrome-top">
         <div className="chrome-brand">
-          <span className="brand-mark">WATTSON</span>
-          <span className="brand-sub">acelera talent · instancia 0</span>
+          <span className="brand-mark">ALFRED</span>
+          <span className="brand-sub">Alta Studio · instancia 0</span>
         </div>
         <div className="chrome-meta">
           <Clock />

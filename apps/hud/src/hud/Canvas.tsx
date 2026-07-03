@@ -31,8 +31,22 @@ const TABLE_RADIUS  = 45;   // vmin — same zone, opposite side
 const KPI_START_DEG = 25;
 const KPI_END_DEG   = 70;
 
-// Table anchor angle (left / west side of the ring)
-const TABLE_DEG     = 220;
+// Sector de las gráficas: arco oeste, espejo de los KPIs
+const CHART_RADIUS    = 47;   // vmin
+const CHART_START_DEG = 250;
+const CHART_END_DEG   = 305;
+
+// Table anchor angle (sur-suroeste, despejado de las gráficas)
+const TABLE_DEG     = 205;
+
+// Cadencia narrativa: cada widget entra un beat después del anterior, en el
+// orden en que el agente los emitió. Una gráfica reserva más tiempo que un
+// KPI para que se le vea crecer las barras antes del siguiente beat.
+const BEAT_MS: Record<string, number> = {
+  kpi_card: 380,
+  metric_chart: 650,
+};
+const DEFAULT_BEAT_MS = 500;
 
 function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
@@ -45,17 +59,28 @@ interface SlotStyle {
   dy: number;   // unit vector Y
 }
 
-function kpiSlotStyle(index: number, total: number): SlotStyle {
-  // Distribute over the KPI arc, or just use START if only one card
+function arcSlotStyle(index: number, total: number, startDeg: number, endDeg: number, radius: number): SlotStyle {
+  // Distribute over the arc, or just use its middle if only one card
   const t = total <= 1 ? 0.5 : index / (total - 1);
-  const deg = KPI_START_DEG + t * (KPI_END_DEG - KPI_START_DEG);
   // CSS angle convention: 0° = top, 90° = right (clockwise)
   // Math convention: angle from positive-X axis, counter-clockwise
-  const rad = degToRad(deg);
-  const tx = CARD_RADIUS * Math.sin(rad);
-  const ty = -CARD_RADIUS * Math.cos(rad);   // negative because Y goes down in screen coords
+  const rad = degToRad(startDeg + t * (endDeg - startDeg));
   // tx/len = (R·sin(rad))/R = sin(rad); ty/len = (-R·cos(rad))/R = -cos(rad)
-  return { tx, ty, dx: Math.sin(rad), dy: -Math.cos(rad) };
+  // (ty negative because Y goes down in screen coords)
+  return {
+    tx: radius * Math.sin(rad),
+    ty: -radius * Math.cos(rad),
+    dx: Math.sin(rad),
+    dy: -Math.cos(rad),
+  };
+}
+
+function kpiSlotStyle(index: number, total: number): SlotStyle {
+  return arcSlotStyle(index, total, KPI_START_DEG, KPI_END_DEG, CARD_RADIUS);
+}
+
+function chartSlotStyle(index: number, total: number): SlotStyle {
+  return arcSlotStyle(index, total, CHART_START_DEG, CHART_END_DEG, CHART_RADIUS);
 }
 
 function tableSlotStyle(): SlotStyle {
@@ -67,27 +92,26 @@ function tableSlotStyle(): SlotStyle {
 }
 
 export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
-  const kpiWidgets = widgets.filter((w) => w.type === "kpi_card");
-  const otherWidgets = widgets.filter((w) => w.type !== "kpi_card");
+  const kpiCount = widgets.filter((w) => w.type === "kpi_card").length;
+  const chartCount = widgets.filter((w) => w.type === "metric_chart").length;
 
-  // Build positional metadata for each widget
-  const slottedWidgets: Array<{ widget: RenderedWidget; slot: SlotStyle; delay: number }> = [];
-
-  kpiWidgets.forEach((w, i) => {
-    slottedWidgets.push({
-      widget: w,
-      slot: kpiSlotStyle(i, kpiWidgets.length),
-      delay: i * 130,
+  // Coreografía narrativa: los widgets entran en el orden en que el agente los
+  // emitió, cada uno un beat después del anterior; el sector depende del tipo.
+  let elapsed = 0;
+  let kpiSeen = 0;
+  let chartSeen = 0;
+  const slottedWidgets: Array<{ widget: RenderedWidget; slot: SlotStyle; delay: number }> =
+    widgets.map((widget) => {
+      const slot =
+        widget.type === "kpi_card"
+          ? kpiSlotStyle(kpiSeen++, kpiCount)
+          : widget.type === "metric_chart"
+          ? chartSlotStyle(chartSeen++, chartCount)
+          : tableSlotStyle();
+      const delay = elapsed;
+      elapsed += BEAT_MS[widget.type] ?? DEFAULT_BEAT_MS;
+      return { widget, slot, delay };
     });
-  });
-
-  otherWidgets.forEach((w, i) => {
-    slottedWidgets.push({
-      widget: w,
-      slot: tableSlotStyle(),
-      delay: (kpiWidgets.length + i) * 130,
-    });
-  });
 
   // One particle burst + one connection beam per banner, from the core.
   const targets = slottedWidgets.map(({ widget, slot, delay }, i) => ({
