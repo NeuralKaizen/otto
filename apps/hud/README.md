@@ -31,7 +31,7 @@ npm run build
 | `src/hud/widgets/` | Registro de widgets de UI generativa (`kpi_card`, `table`, …) |
 | `src/api/` | Cliente de `/converse` |
 
-La escena entera reacciona al estado de la sesión (`data-state` + `OttoScene`):
+La escena entera reacciona al estado de la sesión (`data-state` + `WattsonScene`):
 el color de acento, el espectro, el núcleo y el wordmark cambian juntos.
-La amplitud real de mic/TTS entra por la prop `amplitude` de `OttoScene`
+La amplitud real de mic/TTS entra por la prop `amplitude` de `WattsonScene`
 (hoy el motor genera una envolvente ambiente propia).

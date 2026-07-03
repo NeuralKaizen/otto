@@ -97,10 +97,10 @@
   transition: border-color 0.6s ease;
 }
 
-.corner-tl { top: 16px; left: 16px; border-right: 0; border-bwattsonm: 0; }
-.corner-tr { top: 16px; right: 16px; border-left: 0; border-bwattsonm: 0; }
-.corner-bl { bwattsonm: 16px; left: 16px; border-right: 0; border-top: 0; }
-.corner-br { bwattsonm: 16px; right: 16px; border-left: 0; border-top: 0; }
+.corner-tl { top: 16px; left: 16px; border-right: 0; border-bottom: 0; }
+.corner-tr { top: 16px; right: 16px; border-left: 0; border-bottom: 0; }
+.corner-bl { bottom: 16px; left: 16px; border-right: 0; border-top: 0; }
+.corner-br { bottom: 16px; right: 16px; border-left: 0; border-top: 0; }
 
 .chrome-top {
   position: absolute;
@@ -158,7 +158,7 @@
 
 /*
  * .hud-stage holds BOTH the radial widget canvas (full-area) and the captions
- * (bwattsonm-centered). We make it fill the HUD area and use a sub-element for
+ * (bottom-centered). We make it fill the HUD area and use a sub-element for
  * captions positioning so that App.tsx does not need to change.
  */
 .hud-stage {
@@ -191,10 +191,10 @@
   pointer-events: none;
 }
 
-/* ── Captions: pulled out of flex flow, sit at bwattsonm center ─────── */
+/* ── Captions: pulled out of flex flow, sit at bottom center ─────── */
 .hud-captions {
   position: absolute;
-  bwattsonm: 110px;
+  bottom: 110px;
   left: 0;
   right: 0;
   display: flex;
@@ -379,12 +379,12 @@
   text-transform: uppercase;
   color: var(--ink-dim);
   padding: 3px 20px 6px 0;
-  border-bwattsonm: 1px solid var(--accent-line);
+  border-bottom: 1px solid var(--accent-line);
 }
 
 .table-widget td {
   padding: 6px 20px 6px 0;
-  border-bwattsonm: 1px solid rgba(150, 185, 225, 0.06);
+  border-bottom: 1px solid rgba(150, 185, 225, 0.06);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
@@ -398,7 +398,7 @@
 }
 
 .table-widget tr:last-child td {
-  border-bwattsonm: 0;
+  border-bottom: 0;
 }
 
 /* Telemetry readout: accent top-line on the widget itself */
@@ -445,7 +445,7 @@
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--ink-dim);
-  margin-bwattsonm: 10px;
+  margin-bottom: 10px;
 }
 
 .kpi-value {
@@ -499,7 +499,7 @@
 @media (max-width: 900px) {
   .chrome-top { padding: 20px 22px; }
   .meta-hint, .brand-sub { display: none; }
-  .hud-captions { bwattsonm: 84px; }
+  .hud-captions { bottom: 84px; }
   .caption-text { font-size: 20px; }
   /* Scale down card placement on small screens by reducing the vmin radius */
   .widget.kpi-card    { min-width: 110px; max-width: 140px; }
@@ -649,11 +649,11 @@
   align-items: flex-end;
 }
 .tele-bl {
-  bwattsonm: 30px;
+  bottom: 30px;
   left: 30px;
 }
 .tele-br {
-  bwattsonm: 30px;
+  bottom: 30px;
   right: 30px;
   text-align: right;
   align-items: flex-end;
