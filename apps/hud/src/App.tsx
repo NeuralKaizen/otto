@@ -3,7 +3,7 @@ import type { SessionState, RenderedWidget } from "./voice/types";
 import { useSession } from "./voice/useSession";
 import { WebSpeechWakeWord, WebSpeechTranscriber } from "./voice/adapters/webSpeech";
 import { ElevenLabsSpeaker } from "./voice/adapters/elevenLabsSpeaker";
-import { createAgentClient } from "./api/agentClient";
+import { useAgentClient } from "./api/useAgentClient";
 import { WattsonScene } from "./hud/scene/WattsonScene";
 import { useMicLevel } from "./hud/useMicLevel";
 import { Chrome } from "./hud/Chrome";
@@ -48,17 +48,16 @@ function initialDemo(): SessionState | null {
 }
 
 export default function App() {
-  const agentClient = useMemo(() => createAgentClient(), []);
-  useEffect(() => () => agentClient.dispose(), [agentClient]);
+  const converse = useAgentClient();
 
   const deps = useMemo(() => ({
     wake: new WebSpeechWakeWord(),
     stt: new WebSpeechTranscriber(),
     tts: new ElevenLabsSpeaker(),
-    converse: agentClient.converse,
+    converse,
     closingPhrase: "listo",
     silenceMs: 35000,
-  }), [agentClient]);
+  }), [converse]);
 
   const session = useSession(deps);
 
