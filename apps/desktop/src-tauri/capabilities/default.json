@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/schema/2",
+  "identifier": "default",
+  "description": "Wattson OS desktop — minimal permissions (WebSocket and HTTP are browser-native, no Tauri APIs needed)",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}
