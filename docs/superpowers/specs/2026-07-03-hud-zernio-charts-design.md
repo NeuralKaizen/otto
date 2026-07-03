@@ -90,8 +90,8 @@ widgetsFromToolResult(toolName: string, result: unknown): RenderedWidget[]
 ### 4. `apps/hud/src/hud/Canvas.tsx` — coreografía narrativa
 
 - Sectores: KPIs arco derecho (25°–70°, igual que hoy); `metric_chart` arco
-  izquierdo repartido 195°–265° (radio ~47vmin); `table` baja al sector 150°
-  para no chocar con las gráficas.
+  oeste repartido 250°–305° (radio ~47vmin, espejo de los KPIs); `table` baja
+  al sector 205° (sur-suroeste) para no chocar con las gráficas.
 - Stagger: se sustituye el `i * 130` plano por beats acumulativos por tipo:
   - `kpi_card`: 380ms de beat.
   - `metric_chart`: 650ms de beat (deja verse el crecimiento de barras antes
