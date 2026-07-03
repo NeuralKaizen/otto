@@ -17,7 +17,7 @@ import type { SessionState } from "../../voice/types";
 const N = 14000;
 const SHELL = 0.9;  // fracción de la esfera en cáscara (el resto, volumen)
 const MAX_EDGES = 4200;
-const WORD = "WATTSON";
+const WORD = "ALFRED";
 
 // Especificación estática de los 3 anillos HUD: [factor-radio, velocidad-rotación].
 // Definida a nivel de módulo para evitar allocaciones por frame en drawRings.
