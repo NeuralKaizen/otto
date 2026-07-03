@@ -6,3 +6,9 @@ backend/.venv/
 __pycache__/
 *.pyc
 .vercel
+
+# --- from Wattson backend ---
+dist/
+.turbo/
+*.db
+.env
