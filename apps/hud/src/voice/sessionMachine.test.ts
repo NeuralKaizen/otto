@@ -1,15 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { reduce, initialState } from "./sessionMachine";
+import { reduce, initialState, WAKE_GREETINGS, CONVERSE_ERROR_NARRATION } from "./sessionMachine";
 import type { RenderedWidget } from "./types";
 
 const widgets: RenderedWidget[] = [{ type: "kpi_card", title: "X", data: { value: 1 } }];
 
 describe("sessionMachine", () => {
-  it("idle + wakeDetected -> listening, empieza a escuchar", () => {
+  it("idle + wakeDetected -> speaking: saluda a Luciano ANTES de abrir el mic (no se transcribe a sí mismo)", () => {
     const r = reduce(initialState, { kind: "wakeDetected" });
-    expect(r.state).toBe("listening");
-    expect(r.effects).toContainEqual({ kind: "startListening" });
-    expect(r.effects).toContainEqual({ kind: "armSilenceTimer" });
+    expect(r.state).toBe("speaking");
+    const speak = r.effects.find((e) => e.kind === "speak");
+    expect(speak && WAKE_GREETINGS.includes(speak.text)).toBe(true);
+    expect(r.effects).not.toContainEqual({ kind: "startListening" });
+  });
+
+  it("los saludos rotan entre despertares", () => {
+    const first = reduce(initialState, { kind: "wakeDetected" }).effects.find((e) => e.kind === "speak");
+    const second = reduce(initialState, { kind: "wakeDetected" }).effects.find((e) => e.kind === "speak");
+    expect(first && second && first.text !== second.text).toBe(true);
   });
 
   it("listening + closingPhrase -> idle, deja de escuchar", () => {
@@ -57,10 +64,10 @@ describe("sessionMachine", () => {
     expect(r.effects).toEqual([]);
   });
 
-  it("processing + converseFailed -> listening (vuelve a escuchar)", () => {
+  it("processing + converseFailed -> speaking: dice el error en voz alta (nunca falla mudo)", () => {
     const r = reduce("processing", { kind: "converseFailed" });
-    expect(r.state).toBe("listening");
-    expect(r.effects).toContainEqual({ kind: "startListening" });
+    expect(r.state).toBe("speaking");
+    expect(r.effects).toContainEqual({ kind: "speak", text: CONVERSE_ERROR_NARRATION });
   });
 
   it("speechEnd espurio tras consumir el transcript NO re-dispara converse", () => {

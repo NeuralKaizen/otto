@@ -2,6 +2,19 @@ import type { SessionState, SessionEvent, Effect } from "./types";
 
 export const initialState: SessionState = "idle";
 
+// Español neutro (nada de voseo). El saludo suena ANTES de abrir el mic:
+// si Alfred hablara con el mic abierto, se transcribiría a sí mismo.
+export const WAKE_GREETINGS = [
+  "Hola Luciano, ¿en qué puedo ayudarte?",
+  "Hola Luciano, qué gusto escucharte.",
+  "Aquí estoy, Luciano. Cuéntame.",
+];
+
+export const CONVERSE_ERROR_NARRATION = "Perdón, no pude procesar eso. ¿Puedes repetirlo?";
+
+// Rotación de saludos (mismo patrón module-level que lastFinalTranscript).
+let greetingIndex = 0;
+
 interface Reduction {
   state: SessionState;
   effects: Effect[];
@@ -16,9 +29,12 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
     case "idle":
       if (event.kind === "wakeDetected") {
         lastFinalTranscript = "";
+        const greeting = WAKE_GREETINGS[greetingIndex % WAKE_GREETINGS.length];
+        greetingIndex += 1;
+        // Saluda primero; ttsEnd (en speaking) abre el mic y arma el timer.
         return {
-          state: "listening",
-          effects: [{ kind: "startListening" }, { kind: "armSilenceTimer" }],
+          state: "speaking",
+          effects: [{ kind: "speak", text: greeting }],
         };
       }
       return { state, effects: [] }; // otros eventos sin sesión abierta: no-op
@@ -60,9 +76,10 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
         };
       }
       if (event.kind === "converseFailed") {
+        // Nunca fallar mudo: dice el error y ttsEnd lo devuelve a listening.
         return {
-          state: "listening",
-          effects: [{ kind: "startListening" }, { kind: "armSilenceTimer" }],
+          state: "speaking",
+          effects: [{ kind: "speak", text: CONVERSE_ERROR_NARRATION }],
         };
       }
       return { state, effects: [] };

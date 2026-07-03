@@ -23,6 +23,8 @@ describe("useSession", () => {
     expect(result.current.state).toBe("idle");
 
     act(() => wake.trigger());
+    expect(result.current.state).toBe("speaking"); // saluda a Luciano antes de abrir el mic
+    act(() => tts.finish());
     expect(result.current.state).toBe("listening");
 
     act(() => stt.emit("cuántas atrasadas", true));
@@ -44,18 +46,23 @@ describe("useSession", () => {
       useSession({ wake, stt, tts, converse, closingPhrase: "listo", silenceMs: 30000 }),
     );
     act(() => wake.trigger());
+    act(() => tts.finish()); // termina el saludo → escucha
     act(() => stt.emit("algo", true));
     await waitFor(() => expect(converse).toHaveBeenCalled());
+    // el error se DICE (speaking), no falla mudo; al terminar vuelve a escuchar
+    await waitFor(() => expect(result.current.state).toBe("speaking"));
+    act(() => tts.finish());
     await waitFor(() => expect(result.current.state).toBe("listening"));
   });
 
   it("pausa el wake word durante la sesión y lo reanuda al volver a idle", () => {
     // Chrome permite UN SpeechRecognition activo por página: si el wake sigue
     // vivo, su auto-restart mata al transcriptor y la consulta nunca llega.
-    const { result, wake, stt } = setup();
+    const { result, wake, stt, tts } = setup();
     expect(wake.active).toBe(true);
 
     act(() => wake.trigger());
+    act(() => tts.finish()); // saludo terminado → escucha
     expect(result.current.state).toBe("listening");
     expect(wake.active).toBe(false); // pausado mientras la sesión escucha
 
@@ -65,8 +72,9 @@ describe("useSession", () => {
   });
 
   it("frase de cierre cierra la sesión", () => {
-    const { result, wake, stt } = setup();
+    const { result, wake, stt, tts } = setup();
     act(() => wake.trigger());
+    act(() => tts.finish());
     act(() => stt.emit("listo", true));
     expect(result.current.state).toBe("idle");
   });
