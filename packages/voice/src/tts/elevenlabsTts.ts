@@ -14,7 +14,7 @@ export function createElevenLabsTts(apiKey: string, voiceId: string): TTSProvide
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_monolingual_v1",
+          model_id: "eleven_flash_v2_5", // español + ~75ms + 0.5 créditos/carácter
           voice_settings: { stability: 0.5, similarity_boost: 0.5 },
         }),
       });

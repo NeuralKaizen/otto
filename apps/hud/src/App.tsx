@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { SessionState, RenderedWidget } from "./voice/types";
 import { useSession } from "./voice/useSession";
 import { WebSpeechWakeWord, WebSpeechTranscriber } from "./voice/adapters/webSpeech";
-import { SpeechSynthesisSpeaker } from "./voice/adapters/speechSynthesis";
+import { ElevenLabsSpeaker } from "./voice/adapters/elevenLabsSpeaker";
 import { createAgentClient } from "./api/agentClient";
 import { WattsonScene } from "./hud/scene/WattsonScene";
 import { useMicLevel } from "./hud/useMicLevel";
@@ -54,7 +54,7 @@ export default function App() {
   const deps = useMemo(() => ({
     wake: new WebSpeechWakeWord(),
     stt: new WebSpeechTranscriber(),
-    tts: new SpeechSynthesisSpeaker(),
+    tts: new ElevenLabsSpeaker(),
     converse: agentClient.converse,
     closingPhrase: "listo",
     silenceMs: 35000,
