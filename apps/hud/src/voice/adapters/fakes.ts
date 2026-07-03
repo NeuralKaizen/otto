@@ -2,8 +2,9 @@ import type { WakeWordDetector, Transcriber, Speaker } from "../types";
 
 export class FakeWakeWord implements WakeWordDetector {
   private onWake?: () => void;
-  start(onWake: () => void) { this.onWake = onWake; }
-  stop() { this.onWake = undefined; }
+  active = false; // ¿está escuchando? (los tests verifican la pausa en sesión)
+  start(onWake: () => void) { this.onWake = onWake; this.active = true; }
+  stop() { this.onWake = undefined; this.active = false; }
   trigger() { this.onWake?.(); }
 }
 

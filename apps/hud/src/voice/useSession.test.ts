@@ -49,6 +49,21 @@ describe("useSession", () => {
     await waitFor(() => expect(result.current.state).toBe("listening"));
   });
 
+  it("pausa el wake word durante la sesión y lo reanuda al volver a idle", () => {
+    // Chrome permite UN SpeechRecognition activo por página: si el wake sigue
+    // vivo, su auto-restart mata al transcriptor y la consulta nunca llega.
+    const { result, wake, stt } = setup();
+    expect(wake.active).toBe(true);
+
+    act(() => wake.trigger());
+    expect(result.current.state).toBe("listening");
+    expect(wake.active).toBe(false); // pausado mientras la sesión escucha
+
+    act(() => stt.emit("listo", true)); // cierra la sesión
+    expect(result.current.state).toBe("idle");
+    expect(wake.active).toBe(true); // reanudado en idle
+  });
+
   it("frase de cierre cierra la sesión", () => {
     const { result, wake, stt } = setup();
     act(() => wake.trigger());
