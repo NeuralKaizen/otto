@@ -57,18 +57,32 @@ export class WebSpeechWakeWord implements WakeWordDetector {
   stop() { const r = this.rec; this.rec = undefined; r?.stop(); }
 }
 
+// Acumula TODOS los resultados del reconocimiento en una sola frase.
+// Emitir cada segmento suelto hacía que el subtítulo saltara entre
+// fragmentos ("Instagram" → "metricas de") en vez de crecer.
+export function collectTranscript(results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>): {
+  finals: string;
+  interim: string;
+} {
+  let finals = "";
+  let interim = "";
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.isFinal) finals += r[0].transcript;
+    else interim += r[0].transcript;
+  }
+  return { finals: finals.trim(), interim: interim.trim() };
+}
+
 export class WebSpeechTranscriber implements Transcriber {
   private rec: any;
   start(onPartial: (t: string) => void, onFinal: (t: string) => void) {
     this.rec = newRecognition();
     if (!this.rec) return;
     this.rec.onresult = (e: any) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        const text = res[0].transcript.trim();
-        if (res.isFinal) onFinal(text);
-        else onPartial(text);
-      }
+      const { finals, interim } = collectTranscript(e.results);
+      if (interim) onPartial([finals, interim].filter(Boolean).join(" "));
+      else if (finals) onFinal(finals);
     };
     safeStart(this.rec);
   }

@@ -605,6 +605,23 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Mientras ESCUCHA, el subtítulo es tu dictado: registro técnico del HUD
+ * (mono, tracking amplio), no la serif de cine — esa es la voz de Alfred. */
+.hud[data-state="listening"] .caption-text {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(148, 216, 255, 0.85);
+  animation: none;
+}
+.hud[data-state="listening"] .caption-text::before {
+  content: "▸ ";
+  opacity: 0.6;
+}
+
 /* --- responsive + accesibilidad ------------------------------------ */
 
 @media (max-width: 900px) {
