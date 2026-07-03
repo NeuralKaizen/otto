@@ -32,6 +32,11 @@ interface PendingRun {
   resolve: (r: ConverseResult) => void;
   reject: (e: Error) => void;
   timer: ReturnType<typeof setTimeout>;
+  // Resolves once the initiating POST /chat response has been fully
+  // processed (including capturing a returned conversationId). Successful
+  // completion (message_done) is gated on this so a fast WS event can never
+  // resolve converse() before conversationId has been learned.
+  ready: Promise<void>;
 }
 
 export function createAgentClient(options: AgentClientOptions = {}): AgentClient {
@@ -91,8 +96,16 @@ export function createAgentClient(options: AgentClientOptions = {}): AgentClient
         break;
       case "message_done":
         if (e.messageId === pending.messageId) {
-          if (e.content && e.content.trim()) settleResolve({ narration: e.content, widgets: [] });
-          else settleReject(new Error("empty response"));
+          const run = pending;
+          const content = e.content;
+          // Wait for the POST response's conversationId capture to finish
+          // before settling, so callers that immediately reuse the client
+          // always see the learned conversationId.
+          run.ready.then(() => {
+            if (pending !== run) return;
+            if (content && content.trim()) settleResolve({ narration: content, widgets: [] });
+            else settleReject(new Error("empty response"));
+          });
         }
         break;
       case "approval_requested":
@@ -114,9 +127,10 @@ export function createAgentClient(options: AgentClientOptions = {}): AgentClient
         return;
       }
       const timer = setTimeout(() => settleReject(new Error("response timeout")), timeoutMs);
-      pending = { messageId: null, resolve, reject, timer };
+      const run: PendingRun = { messageId: null, resolve, reject, timer, ready: Promise.resolve() };
+      pending = run;
 
-      fetchImpl(`${apiUrl}/chat`, {
+      run.ready = fetchImpl(`${apiUrl}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, source: "voice", conversationId }),
