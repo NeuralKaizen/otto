@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentStatus, ApprovalRisk } from "@jarvis/shared";
+import type { AgentEvent, AgentStatus, ApprovalRisk } from "@wattson/shared";
 
 export type { AgentEvent, AgentStatus, ApprovalRisk };
 

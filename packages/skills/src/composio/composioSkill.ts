@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { ApprovalRequest, SkillPreflightResult } from "@jarvis/shared";
+import type { ApprovalRequest, SkillPreflightResult } from "@wattson/shared";
 import type { SkillDefinition, SkillContext } from "../types.js";
 import type { ComposioActionRisk, ComposioPolicyDecision, ComposioToolkit, ComposioToolRequest, ComposioToolResult } from "./types.js";
 import { parseComposioRequest } from "./composioParser.js";
@@ -41,7 +41,7 @@ function mapRiskToLevel(risk: ComposioActionRisk): "low" | "medium" | "high" {
 function buildApprovalDescription(request: ComposioToolRequest, decision: ComposioPolicyDecision, label: string): string {
   const queryNote = typeof request.params.query === "string" ? ` relacionado con "${request.params.query}"` : "";
   const lines = [
-    "Jarvis quiere ejecutar una acción externa:",
+    "Wattson quiere ejecutar una acción externa:",
     "",
     `Toolkit: ${label}`,
     `Action: ${request.action}`,
@@ -292,7 +292,7 @@ export const composioSkill: SkillDefinition<ComposioSkillInput, ComposioSkillRes
         action: request.action,
         insights: [],
         limitations: [
-          "Esta acción requiere aprobación y debe ejecutarse desde la interfaz WebSocket/UI de Jarvis (no vía HTTP GET).",
+          "Esta acción requiere aprobación y debe ejecutarse desde la interfaz WebSocket/UI de Wattson (no vía HTTP GET).",
         ],
         enabled: config.enabled,
         blocked: false,

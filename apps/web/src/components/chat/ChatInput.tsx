@@ -36,16 +36,16 @@ export function ChatInput({ onSend, onCancel, disabled, isStreaming }: Props) {
   };
 
   return (
-    <div className="flex items-end gap-2 p-3 jarvis-card rounded-lg">
+    <div className="flex items-end gap-2 p-3 wattson-card rounded-lg">
       <textarea
         ref={textareaRef}
         rows={1}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Message Jarvis... (Enter to send, Shift+Enter for newline)"
+        placeholder="Message Wattson... (Enter to send, Shift+Enter for newline)"
         disabled={disabled}
-        className="flex-1 bg-transparent resize-none text-sm text-jarvis-text placeholder-jarvis-muted outline-none leading-relaxed max-h-32 overflow-y-auto"
+        className="flex-1 bg-transparent resize-none text-sm text-wattson-text placeholder-wattson-muted outline-none leading-relaxed max-h-32 overflow-y-auto"
         style={{ minHeight: "1.5rem" }}
       />
       <button
@@ -53,7 +53,7 @@ export function ChatInput({ onSend, onCancel, disabled, isStreaming }: Props) {
         disabled={!supported}
         title={supported ? (listening ? "Stop listening" : "Voice input") : "Voice not supported"}
         className={`p-1.5 rounded transition-colors ${
-          listening ? "text-jarvis-cyan" : supported ? "text-jarvis-muted hover:text-jarvis-subtle" : "text-jarvis-border cursor-not-allowed"
+          listening ? "text-wattson-cyan" : supported ? "text-wattson-muted hover:text-wattson-subtle" : "text-wattson-border cursor-not-allowed"
         }`}
       >
         {listening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -70,7 +70,7 @@ export function ChatInput({ onSend, onCancel, disabled, isStreaming }: Props) {
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="p-1.5 rounded text-jarvis-cyan hover:text-white disabled:text-jarvis-border disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded text-wattson-cyan hover:text-white disabled:text-wattson-border disabled:cursor-not-allowed transition-colors"
         >
           <Send size={16} />
         </button>

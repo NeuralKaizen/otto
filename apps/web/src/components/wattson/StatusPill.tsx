@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { AgentStatus } from "@jarvis/shared";
+import type { AgentStatus } from "@wattson/shared";
 
 interface Props {
   status: AgentStatus;
@@ -16,22 +16,22 @@ const DOT_COLORS: Partial<Record<AgentStatus, string>> = {
 };
 
 export function StatusPill({ status, connected }: Props) {
-  const dotClass = DOT_COLORS[status] ?? "bg-jarvis-muted";
+  const dotClass = DOT_COLORS[status] ?? "bg-wattson-muted";
   const pulse = status !== "idle" && status !== "done" && status !== "error";
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full jarvis-card text-xs">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full wattson-card text-xs">
       <span
-        className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-jarvis-cyan" : "bg-red-500"}`}
+        className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-wattson-cyan" : "bg-red-500"}`}
       />
-      <span className="text-jarvis-subtle">API</span>
-      <span className="text-jarvis-border">|</span>
+      <span className="text-wattson-subtle">API</span>
+      <span className="text-wattson-border">|</span>
       <motion.span
         className={`inline-block w-2 h-2 rounded-full ${dotClass}`}
         animate={pulse ? { scale: [1, 1.4, 1] } : {}}
         transition={{ duration: 0.8, repeat: Infinity }}
       />
-      <span className="text-jarvis-text uppercase tracking-widest">{status.replace("_", " ")}</span>
+      <span className="text-wattson-text uppercase tracking-widest">{status.replace("_", " ")}</span>
     </div>
   );
 }

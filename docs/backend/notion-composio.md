@@ -1,7 +1,7 @@
 # Notion Dedicated Skill via Composio
 
 ## Why this exists
-Jarvis now uses a dedicated Notion skill instead of relying on the generic `/composio/execute?q=...` gateway for Notion prompts.
+Wattson now uses a dedicated Notion skill instead of relying on the generic `/composio/execute?q=...` gateway for Notion prompts.
 
 Benefits:
 - explicit action mapping
@@ -42,7 +42,7 @@ Notes:
 Read:
 - `Busca en Notion tareas pendientes`
 - `Qué tareas tengo pendientes en Notion`
-- `Revisa el estado del proyecto Jarvis en Notion`
+- `Revisa el estado del proyecto Wattson en Notion`
 - `Busca páginas sobre llamadas`
 - `Muéstrame mis páginas recientes de Notion`
 

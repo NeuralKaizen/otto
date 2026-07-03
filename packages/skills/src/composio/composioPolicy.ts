@@ -85,7 +85,7 @@ export function evaluatePolicy(toolkit: ComposioToolkit, action: string, config:
       allowed: false,
       requiresApproval: false,
       risk,
-      blockedReason: "Las acciones de merge/delete en GitHub están bloqueadas por seguridad y no se ejecutan desde Jarvis.",
+      blockedReason: "Las acciones de merge/delete en GitHub están bloqueadas por seguridad y no se ejecutan desde Wattson.",
     };
   }
 

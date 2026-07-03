@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { AgentStatus } from "@jarvis/shared";
+import type { AgentStatus } from "@wattson/shared";
 
 interface Props {
   status: AgentStatus;
@@ -31,7 +31,7 @@ const STATUS_COLORS: Record<AgentStatus, string> = {
   error: "#ff3344",
 };
 
-export function JarvisOrb({ status }: Props) {
+export function WattsonOrb({ status }: Props) {
   const color = STATUS_COLORS[status];
   const isActive = status !== "idle" && status !== "done" && status !== "error";
 
@@ -84,7 +84,7 @@ export function JarvisOrb({ status }: Props) {
         >
           {STATUS_LABELS[status]}
         </motion.div>
-        <div className="text-[10px] text-jarvis-muted mt-1 tracking-widest">JARVIS OS v0.1</div>
+        <div className="text-[10px] text-wattson-muted mt-1 tracking-widest">WATTSON OS v0.1</div>
       </div>
     </div>
   );

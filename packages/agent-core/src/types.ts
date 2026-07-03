@@ -1,4 +1,4 @@
-import type { AgentEvent, SkillPreflightResult } from "@jarvis/shared";
+import type { AgentEvent, SkillPreflightResult } from "@wattson/shared";
 
 export interface AgentInput {
   conversationId?: string;

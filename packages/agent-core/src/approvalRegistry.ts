@@ -1,4 +1,4 @@
-import type { ApprovalRequest, PendingSkillExecution } from "@jarvis/shared";
+import type { ApprovalRequest, PendingSkillExecution } from "@wattson/shared";
 
 export type PendingApprovalStatus = "pending" | "approved" | "rejected" | "expired";
 

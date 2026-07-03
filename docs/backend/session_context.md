@@ -1,4 +1,4 @@
-# Jarvis OS — Session Context
+# Wattson OS — Session Context
 
 ## Status
 Fases 1-11 completas. `pnpm typecheck` 8/8 PASS. Repo en checkpoint estable.

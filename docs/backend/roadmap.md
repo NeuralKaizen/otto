@@ -3,7 +3,7 @@
 ## Phase 1 — MVP Local Web (current)
 - [x] Monorepo (pnpm + turbo)
 - [x] Fastify API with WebSocket
-- [x] Vite + React UI (Jarvis style)
+- [x] Vite + React UI (Wattson style)
 - [x] Mock LLM provider
 - [x] SQLite memory (Prisma)
 - [x] Skill registry
@@ -23,7 +23,7 @@
 ## Phase 3 — Tauri Desktop App
 - [ ] Wrap web app in Tauri
 - [ ] System tray integration
-- [ ] Global hotkey to open Jarvis
+- [ ] Global hotkey to open Wattson
 
 ## Phase 4 — Notion + Fathom
 - [ ] Fathom transcript ingestion skill

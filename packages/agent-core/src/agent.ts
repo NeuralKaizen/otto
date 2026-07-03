@@ -1,11 +1,11 @@
 import { randomUUID } from "crypto";
-import type { AgentEvent } from "@jarvis/shared";
+import type { AgentEvent } from "@wattson/shared";
 import {
   createConversation,
   getConversation,
   addMessage,
   searchMemories,
-} from "@jarvis/memory";
+} from "@wattson/memory";
 import { routeIntent } from "./router.js";
 import { createPlan } from "./planner.js";
 import { executePlan } from "./executor.js";

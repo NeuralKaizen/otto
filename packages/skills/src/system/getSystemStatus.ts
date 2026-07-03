@@ -11,7 +11,7 @@ interface SystemStatusOutput {
 
 export const getSystemStatus: SkillDefinition<{ message: string }, SystemStatusOutput> = {
   name: "getSystemStatus",
-  description: "Devuelve el estado actual del sistema Jarvis: API, base de datos, proveedores y feature flags",
+  description: "Devuelve el estado actual del sistema Wattson: API, base de datos, proveedores y feature flags",
   inputSchema: { type: "object", properties: { message: { type: "string" } }, required: ["message"] },
   requiresApproval: false,
   riskLevel: "low",
@@ -21,7 +21,7 @@ export const getSystemStatus: SkillDefinition<{ message: string }, SystemStatusO
     let dbStatus: { status: "ok" | "error"; message: string } = { status: "ok", message: "SQLite connected" };
 
     try {
-      const { getDb } = await import("@jarvis/memory");
+      const { getDb } = await import("@wattson/memory");
       await getDb().$queryRaw`SELECT 1`;
     } catch (e) {
       dbStatus = { status: "error", message: String(e) };

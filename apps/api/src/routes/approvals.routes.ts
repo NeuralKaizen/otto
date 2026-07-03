@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { approvalManager } from "@jarvis/agent-core";
-import { resolveApproval } from "@jarvis/memory";
+import { approvalManager } from "@wattson/agent-core";
+import { resolveApproval } from "@wattson/memory";
 import { broadcast } from "../ws/eventBus.js";
 
 export function approvalsRoutes(app: FastifyInstance): void {

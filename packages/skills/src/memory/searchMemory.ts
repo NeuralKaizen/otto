@@ -1,4 +1,4 @@
-import { searchMemories as dbSearch } from "@jarvis/memory";
+import { searchMemories as dbSearch } from "@wattson/memory";
 import type { SkillDefinition, SkillContext } from "../types.js";
 
 interface SearchMemoryInput {
@@ -24,13 +24,13 @@ interface SearchMemoryOutput {
 function extractQuery(message: string): string {
   return message
     .replace(/^(qué recuerdas|que recuerdas|busca en memoria|tienes guardado sobre|what do you remember about)[,\s]*/i, "")
-    .replace(/^(jarvis)[,\s]*/i, "")
+    .replace(/^(wattson)[,\s]*/i, "")
     .trim() || message;
 }
 
 export const searchMemorySkill: SkillDefinition<SearchMemoryInput, SearchMemoryOutput> = {
   name: "searchMemory",
-  description: "Busca en la memoria de Jarvis información guardada previamente",
+  description: "Busca en la memoria de Wattson información guardada previamente",
   inputSchema: {
     type: "object",
     properties: {

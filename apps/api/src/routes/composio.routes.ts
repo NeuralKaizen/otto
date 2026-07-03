@@ -5,7 +5,7 @@ import {
   getComposioConfig,
   isComposioRealAdapterAvailable,
   listAvailableTools,
-} from "@jarvis/skills";
+} from "@wattson/skills";
 
 export function composioRoutes(app: FastifyInstance): void {
   app.get("/composio/tools", async (_req, reply) => {

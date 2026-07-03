@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { AgentEvent, AgentStatus } from "@jarvis/shared";
+import type { AgentEvent, AgentStatus } from "@wattson/shared";
 import type { DisplayMessage, DisplayToolCall, DisplayApproval } from "../lib/types.js";
 import { sendChat } from "../lib/api.js";
 import { randomId } from "../lib/utils.js";

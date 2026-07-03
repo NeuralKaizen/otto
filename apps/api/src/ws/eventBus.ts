@@ -1,5 +1,5 @@
 import type { SocketStream } from "@fastify/websocket";
-import type { AgentEvent } from "@jarvis/shared";
+import type { AgentEvent } from "@wattson/shared";
 
 const clients = new Set<SocketStream>();
 

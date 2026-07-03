@@ -6,7 +6,7 @@ import {
   getNotionRuntimeState,
   validateNotionWorkspaceConfig,
   discoverNotionActionSupport,
-} from "@jarvis/skills";
+} from "@wattson/skills";
 
 const notionQuerySchema = z.object({
   q: z.string().min(1),

@@ -18,7 +18,7 @@ const KNOWN_PEOPLE: KnownEntity[] = [
 const KNOWN_PROJECTS: KnownEntity[] = [
   { pattern: /\bcrm notion\b/i, canonical: "CRM Notion" },
   { pattern: /\bsocial metrics\b/i, canonical: "Social Metrics" },
-  { pattern: /\bjarvis\b/i, canonical: "Jarvis" },
+  { pattern: /\bwattson\b/i, canonical: "Wattson" },
   { pattern: /\bacelera\b/i, canonical: "Acelera" },
   { pattern: /\bhouston\b/i, canonical: "Houston" },
 ];
@@ -30,7 +30,7 @@ const PERSON_PATTERNS = [
   /\bpara\s+([A-ZÀ-Þ][\wÀ-ÿ'-]*)/i,
 ];
 
-const PERSON_STOPWORDS = new Set(["notion", "jarvis", "acelera", "houston"]);
+const PERSON_STOPWORDS = new Set(["notion", "wattson", "acelera", "houston"]);
 
 const PROJECT_PATTERN = /(?:del proyecto|proyecto)\s+([A-Za-zÀ-ÿ0-9][\wÀ-ÿ0-9-]*)/i;
 

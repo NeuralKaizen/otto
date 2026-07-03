@@ -1,4 +1,4 @@
-import { saveMemory as dbSaveMemory } from "@jarvis/memory";
+import { saveMemory as dbSaveMemory } from "@wattson/memory";
 import type { SkillDefinition, SkillContext } from "../types.js";
 
 interface SaveMemoryInput {
@@ -17,7 +17,7 @@ interface SaveMemoryOutput {
 
 function extractTitle(message: string): string {
   const cleaned = message
-    .replace(/^(recuerda|guarda|anota|remember|jarvis)[,\s]*/i, "")
+    .replace(/^(recuerda|guarda|anota|remember|wattson)[,\s]*/i, "")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned.length > 80 ? cleaned.slice(0, 80) + "…" : cleaned;
@@ -33,7 +33,7 @@ function detectKind(message: string): "preference" | "project" | "fact" | "instr
 
 export const saveMemorySkill: SkillDefinition<SaveMemoryInput, SaveMemoryOutput> = {
   name: "saveMemory",
-  description: "Guarda información en la memoria de Jarvis para recordarla en futuras conversaciones",
+  description: "Guarda información en la memoria de Wattson para recordarla en futuras conversaciones",
   inputSchema: {
     type: "object",
     properties: {

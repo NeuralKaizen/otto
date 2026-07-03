@@ -35,7 +35,7 @@ const RISK_COLORS: Record<string, string> = {
   write: "text-orange-400",
   send: "text-orange-400",
   delete: "text-red-400",
-  unknown: "text-jarvis-muted",
+  unknown: "text-wattson-muted",
 };
 
 interface ComposioMeta {
@@ -92,7 +92,7 @@ function getComposioMeta(result: unknown): ComposioMeta | null {
     modeTone = "text-yellow-300";
   } else {
     modeBadge = "Unavailable";
-    modeTone = "text-jarvis-muted";
+    modeTone = "text-wattson-muted";
   }
 
   const riskFromAction = /\b(create|update|patch|edit|assign|comment)\b/i.test(action) ? "write"
@@ -102,7 +102,7 @@ function getComposioMeta(result: unknown): ComposioMeta | null {
     : "unknown";
 
   const riskLabel = riskFromAction.charAt(0).toUpperCase() + riskFromAction.slice(1);
-  const riskTone = RISK_COLORS[riskFromAction] ?? "text-jarvis-muted";
+  const riskTone = RISK_COLORS[riskFromAction] ?? "text-wattson-muted";
 
   return { toolkitLabel, action, modeBadge, modeTone, riskLabel, riskTone, summary, limitation, blocked, requiresApproval };
 }
@@ -141,7 +141,7 @@ function getNotionMeta(result: unknown): NotionMeta | null {
   const risk = r.risk ?? "read";
 
   let modeBadge = "Unavailable";
-  let modeTone = "text-jarvis-muted";
+  let modeTone = "text-wattson-muted";
   if (blocked) {
     modeBadge = "Blocked";
     modeTone = "text-red-400";
@@ -201,13 +201,13 @@ export function ToolCallCard({ toolCall }: Props) {
     <motion.div
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
-      className="jarvis-card rounded p-2 text-xs border-l-2 border-yellow-500"
+      className="wattson-card rounded p-2 text-xs border-l-2 border-yellow-500"
     >
       <div className="flex items-center gap-2 mb-1">
         {icon}
-        <Wrench size={10} className="text-jarvis-muted" />
+        <Wrench size={10} className="text-wattson-muted" />
         <span className="text-yellow-300 font-mono">{toolCall.toolName}</span>
-        <span className="text-jarvis-muted ml-auto">{formatTime(toolCall.startedAt)}</span>
+        <span className="text-wattson-muted ml-auto">{formatTime(toolCall.startedAt)}</span>
       </div>
 
       {/* Composio-specific card body */}
@@ -216,11 +216,11 @@ export function ToolCallCard({ toolCall }: Props) {
           {/* Toolkit + action row */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1">
-              <Globe size={9} className="text-jarvis-cyan" />
-              <span className="text-jarvis-cyan font-semibold">{composioMeta.toolkitLabel}</span>
+              <Globe size={9} className="text-wattson-cyan" />
+              <span className="text-wattson-cyan font-semibold">{composioMeta.toolkitLabel}</span>
             </div>
             {composioMeta.action && (
-              <span className="text-[10px] text-jarvis-subtle font-mono truncate max-w-[120px]" title={composioMeta.action}>
+              <span className="text-[10px] text-wattson-subtle font-mono truncate max-w-[120px]" title={composioMeta.action}>
                 {composioMeta.action.replace(/^[A-Z]+_/, "").replace(/_/g, " ").toLowerCase()}
               </span>
             )}
@@ -236,7 +236,7 @@ export function ToolCallCard({ toolCall }: Props) {
 
           {/* Summary (first line only) */}
           {toolCall.status === "completed" && composioMeta.summary && (
-            <div className="text-jarvis-subtle text-[10px] truncate" title={composioMeta.summary}>
+            <div className="text-wattson-subtle text-[10px] truncate" title={composioMeta.summary}>
               {composioMeta.summary.split("\n")[0]}
             </div>
           )}
@@ -254,10 +254,10 @@ export function ToolCallCard({ toolCall }: Props) {
         <div className="mt-1 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1">
-              <Globe size={9} className="text-jarvis-cyan" />
-              <span className="text-jarvis-cyan font-semibold">Notion</span>
+              <Globe size={9} className="text-wattson-cyan" />
+              <span className="text-wattson-cyan font-semibold">Notion</span>
             </div>
-            <span className="text-[10px] text-jarvis-subtle font-mono truncate max-w-[120px]" title={notionMeta.actionLabel}>
+            <span className="text-[10px] text-wattson-subtle font-mono truncate max-w-[120px]" title={notionMeta.actionLabel}>
               {notionMeta.actionLabel}
             </span>
           </div>
@@ -270,7 +270,7 @@ export function ToolCallCard({ toolCall }: Props) {
           </div>
 
           {toolCall.status === "completed" && notionMeta.summary && (
-            <div className="text-jarvis-subtle text-[10px] truncate" title={notionMeta.summary}>
+            <div className="text-wattson-subtle text-[10px] truncate" title={notionMeta.summary}>
               {notionMeta.summary.split("\n")[0]}
             </div>
           )}
@@ -290,7 +290,7 @@ export function ToolCallCard({ toolCall }: Props) {
             {socialSource.label}
           </div>
           {socialSource.warning && (
-            <div className="text-[10px] text-jarvis-subtle truncate">
+            <div className="text-[10px] text-wattson-subtle truncate">
               {socialSource.warning}
             </div>
           )}
@@ -299,7 +299,7 @@ export function ToolCallCard({ toolCall }: Props) {
 
       {/* Generic result preview (non-Composio, non-social) */}
       {!composioMeta && !notionMeta && !socialSource && toolCall.status === "completed" && toolCall.result !== undefined && (
-        <div className="text-jarvis-subtle text-[10px] mt-1 truncate">
+        <div className="text-wattson-subtle text-[10px] mt-1 truncate">
           Done · {JSON.stringify(toolCall.result).slice(0, 80)}…
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { Intent, AgentPlan } from "@jarvis/shared";
+import type { Intent, AgentPlan } from "@wattson/shared";
 
 const PLAN_BY_INTENT: Record<Intent, Omit<AgentPlan, "intent">> = {
   meeting_to_linkedin_post: {
@@ -19,12 +19,12 @@ const PLAN_BY_INTENT: Record<Intent, Omit<AgentPlan, "intent">> = {
   memory_search: {
     skillName: "searchMemory",
     requiresApproval: false,
-    description: "Buscar información en la memoria de Jarvis",
+    description: "Buscar información en la memoria de Wattson",
   },
   save_memory: {
     skillName: "saveMemory",
     requiresApproval: false,
-    description: "Guardar información en la memoria de Jarvis",
+    description: "Guardar información en la memoria de Wattson",
   },
   system_status: {
     skillName: "getSystemStatus",

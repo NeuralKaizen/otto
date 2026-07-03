@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        jarvis: {
+        wattson: {
           bg: "#050a12",
           surface: "#0a1628",
           card: "#0d1f3c",

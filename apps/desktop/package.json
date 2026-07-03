@@ -1,11 +1,11 @@
 {
-  "name": "@jarvis/desktop",
+  "name": "@wattson/desktop",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev:desktop": "tauri dev",
     "build:desktop": "tauri build",
-    "typecheck": "echo 'No TypeScript sources in @jarvis/desktop'"
+    "typecheck": "echo 'No TypeScript sources in @wattson/desktop'"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

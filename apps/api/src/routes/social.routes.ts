@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { routePlatformRequest, getSocialConfig, validateSocialConfig, getSocialRuntimeState, isZernioRealAdapterAvailable } from "@jarvis/skills";
-import type { SocialPlatform } from "@jarvis/skills";
+import { routePlatformRequest, getSocialConfig, validateSocialConfig, getSocialRuntimeState, isZernioRealAdapterAvailable } from "@wattson/skills";
+import type { SocialPlatform } from "@wattson/skills";
 
 export function socialRoutes(app: FastifyInstance): void {
   app.get("/social/status", async (_req, reply) => {

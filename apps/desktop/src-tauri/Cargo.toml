@@ -1,10 +1,10 @@
 [package]
-name = "jarvis-desktop"
+name = "wattson-desktop"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "jarvis_desktop_lib"
+name = "wattson_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

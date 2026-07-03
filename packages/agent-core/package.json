@@ -1,5 +1,5 @@
 {
-  "name": "@jarvis/agent-core",
+  "name": "@wattson/agent-core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,8 +12,8 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
-    "@jarvis/shared": "workspace:*",
-    "@jarvis/memory": "workspace:*",
+    "@wattson/shared": "workspace:*",
+    "@wattson/memory": "workspace:*",
     "openai": "^4.52.0"
   },
   "devDependencies": {

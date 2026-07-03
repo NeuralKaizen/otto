@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { addClient } from "./eventBus.js";
-import { approvalManager, cancelMessage } from "@jarvis/agent-core";
+import { approvalManager, cancelMessage } from "@wattson/agent-core";
 
 export function registerWebSocket(app: FastifyInstance): void {
   app.get("/ws", { websocket: true }, (conn) => {

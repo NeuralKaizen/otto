@@ -2,8 +2,8 @@ import "./env.js";
 import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyWebsocket from "@fastify/websocket";
-import { registerSkillRegistry } from "@jarvis/agent-core";
-import { getSkill, listSkills } from "@jarvis/skills";
+import { registerSkillRegistry } from "@wattson/agent-core";
+import { getSkill, listSkills } from "@wattson/skills";
 import { env } from "./env.js";
 import { registerWebSocket } from "./ws/agentSocket.js";
 import { healthRoutes } from "./routes/health.routes.js";
@@ -46,7 +46,7 @@ app.setErrorHandler((err, _req, reply) => {
 
 try {
   await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
-  app.log.info(`Jarvis API running at http://localhost:${env.API_PORT}`);
+  app.log.info(`Wattson API running at http://localhost:${env.API_PORT}`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

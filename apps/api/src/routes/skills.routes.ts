@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { listSkills } from "@jarvis/skills";
+import { listSkills } from "@wattson/skills";
 
 export function skillsRoutes(app: FastifyInstance): void {
   app.get("/skills", async (_req, reply) => {

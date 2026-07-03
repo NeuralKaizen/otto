@@ -29,7 +29,7 @@ const MOCK_EVENTS: Record<string, CalendarEvent[]> = {
       description: "Revisión diaria de avances",
     },
     {
-      title: "Demo de Jarvis OS",
+      title: "Demo de Wattson OS",
       start: "2026-06-04T15:00:00-05:00",
       end: "2026-06-04T15:30:00-05:00",
       location: "Zoom",
@@ -52,7 +52,7 @@ const MOCK_EVENTS: Record<string, CalendarEvent[]> = {
       location: "Google Meet",
     },
     {
-      title: "Demo de Jarvis OS",
+      title: "Demo de Wattson OS",
       start: "2026-06-04T15:00:00-05:00",
       end: "2026-06-04T15:30:00-05:00",
       location: "Zoom",

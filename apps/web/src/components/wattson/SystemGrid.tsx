@@ -20,9 +20,9 @@ export function SystemGrid({ connected, providerInfo }: Props) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {items.map((item) => (
-        <div key={item.label} className="jarvis-card rounded p-2 text-center">
-          <div className="text-[9px] text-jarvis-muted tracking-widest mb-0.5">{item.label}</div>
-          <div className={`text-[10px] font-semibold tracking-wider ${item.ok ? "text-jarvis-cyan" : "text-red-400"}`}>
+        <div key={item.label} className="wattson-card rounded p-2 text-center">
+          <div className="text-[9px] text-wattson-muted tracking-widest mb-0.5">{item.label}</div>
+          <div className={`text-[10px] font-semibold tracking-wider ${item.ok ? "text-wattson-cyan" : "text-red-400"}`}>
             {item.value}
           </div>
         </div>

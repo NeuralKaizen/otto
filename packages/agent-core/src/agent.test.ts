@@ -48,5 +48,5 @@ test("hasSocialFollowUpSignals detecta follow-ups de top content y referencias a
   assert.equal(hasSocialFollowUpSignals("Cuales son los videos mas vistos de esa cuenta"), true);
   assert.equal(hasSocialFollowUpSignals("que contenido funciono mejor"), true);
   assert.equal(hasSocialFollowUpSignals("mejores posts de esta cuenta"), true);
-  assert.equal(hasSocialFollowUpSignals("hola jarvis"), false);
+  assert.equal(hasSocialFollowUpSignals("hola wattson"), false);
 });

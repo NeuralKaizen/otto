@@ -3,7 +3,7 @@ import type { ComposioActionRisk, ComposioToolDefinition, ComposioToolkit } from
 import { classifyActionRisk } from "./composioPolicy.js";
 
 /**
- * Curated catalog of Composio actions Jarvis knows how to call and mock.
+ * Curated catalog of Composio actions Wattson knows how to call and mock.
  *
  * Action slugs follow Composio's `TOOLKIT_VERB_NOUN` convention. These are the
  * commonly published slugs for each toolkit as of this writing — if the real
@@ -137,12 +137,12 @@ export function findToolDefinition(toolkit: ComposioToolkit, action: string): Co
   return { ...def, risk: classifyActionRisk(def.action) };
 }
 
-/** The default "list/search" action Jarvis uses for a toolkit when a request doesn't name a specific action. */
+/** The default "list/search" action Wattson uses for a toolkit when a request doesn't name a specific action. */
 export function defaultReadAction(toolkit: ComposioToolkit): ComposioToolDefinition | undefined {
   return TOOL_DEFINITIONS.find((t) => t.toolkit === toolkit && t.risk === "read" && t.enabled);
 }
 
-/** The default "create" action Jarvis uses for a toolkit when a write request doesn't name a specific action. */
+/** The default "create" action Wattson uses for a toolkit when a write request doesn't name a specific action. */
 export function defaultWriteAction(toolkit: ComposioToolkit): ComposioToolDefinition | undefined {
   return TOOL_DEFINITIONS.find((t) => t.toolkit === toolkit && t.risk !== "read" && t.enabled);
 }

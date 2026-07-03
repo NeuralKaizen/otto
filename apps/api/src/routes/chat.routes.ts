@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getSessionContextSnapshot, runAgent } from "@jarvis/agent-core";
-import { createConversation } from "@jarvis/memory";
+import { getSessionContextSnapshot, runAgent } from "@wattson/agent-core";
+import { createConversation } from "@wattson/memory";
 import { broadcast } from "../ws/eventBus.js";
 
 const chatBodySchema = z.object({

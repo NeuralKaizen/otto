@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getProviderInfo } from "@jarvis/agent-core";
+import { getProviderInfo } from "@wattson/agent-core";
 import {
   getSocialRuntimeState,
   isNotionRealAdapterAvailable,
@@ -12,7 +12,7 @@ import {
   getNotionRuntimeState,
   validateNotionWorkspaceConfig,
   discoverNotionActionSupport,
-} from "@jarvis/skills";
+} from "@wattson/skills";
 import { env } from "../env.js";
 import { clientCount } from "../ws/eventBus.js";
 
@@ -58,7 +58,7 @@ export function healthRoutes(app: FastifyInstance): void {
 
     reply.send({
       ok: true,
-      service: "jarvis-api",
+      service: "wattson-api",
       wsClients: clientCount(),
       provider: {
         ...providerInfo,

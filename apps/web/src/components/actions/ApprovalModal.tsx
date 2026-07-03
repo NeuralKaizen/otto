@@ -25,38 +25,38 @@ export function ApprovalModal({ approval, onApprove, onReject }: Props) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="jarvis-card rounded-xl p-6 max-w-md w-full"
+          className="wattson-card rounded-xl p-6 max-w-md w-full"
           style={{ border: "1px solid #ff660088", boxShadow: "0 0 40px #ff660022" }}
         >
           <div className="flex items-center gap-3 mb-4">
             <AlertTriangle size={20} className="text-orange-400 flex-shrink-0" />
             <div>
               <div className="text-sm font-semibold text-orange-300">Approval Required</div>
-              <div className="text-xs text-jarvis-muted font-mono">{approval.toolName}</div>
+              <div className="text-xs text-wattson-muted font-mono">{approval.toolName}</div>
             </div>
           </div>
 
           {(approval.toolkit || approval.action || approval.risk) && (
             <div className="flex flex-wrap gap-2 mb-3 text-[11px] font-mono">
               {approval.toolkit && (
-                <span className="px-2 py-0.5 rounded bg-jarvis-bg text-jarvis-subtle border border-jarvis-border">
+                <span className="px-2 py-0.5 rounded bg-wattson-bg text-wattson-subtle border border-wattson-border">
                   Toolkit: {approval.toolkit}
                 </span>
               )}
               {approval.action && (
-                <span className="px-2 py-0.5 rounded bg-jarvis-bg text-jarvis-subtle border border-jarvis-border">
+                <span className="px-2 py-0.5 rounded bg-wattson-bg text-wattson-subtle border border-wattson-border">
                   Action: {approval.action}
                 </span>
               )}
               {approval.risk && (
-                <span className="px-2 py-0.5 rounded bg-jarvis-bg text-jarvis-subtle border border-jarvis-border">
+                <span className="px-2 py-0.5 rounded bg-wattson-bg text-wattson-subtle border border-wattson-border">
                   Risk: {approval.risk}
                 </span>
               )}
             </div>
           )}
 
-          <p className="text-sm text-jarvis-text mb-4 whitespace-pre-wrap">{approval.summary}</p>
+          <p className="text-sm text-wattson-text mb-4 whitespace-pre-wrap">{approval.summary}</p>
 
           {(approval.risk === "write" || approval.risk === "send" || approval.risk === "delete") && (
             <div className="text-xs text-orange-300 bg-orange-500 bg-opacity-10 border border-orange-500 border-opacity-40 rounded p-2 mb-4">
@@ -66,13 +66,13 @@ export function ApprovalModal({ approval, onApprove, onReject }: Props) {
 
           <button
             onClick={() => setShowArgs((v) => !v)}
-            className="text-xs text-jarvis-muted hover:text-jarvis-subtle mb-3"
+            className="text-xs text-wattson-muted hover:text-wattson-subtle mb-3"
           >
             {showArgs ? "▼ Hide" : "▶ Show"} arguments
           </button>
 
           {showArgs && (
-            <pre className="text-[10px] text-jarvis-subtle bg-jarvis-bg rounded p-3 overflow-auto max-h-40 mb-4">
+            <pre className="text-[10px] text-wattson-subtle bg-wattson-bg rounded p-3 overflow-auto max-h-40 mb-4">
               {JSON.stringify(approval.args, null, 2)}
             </pre>
           )}

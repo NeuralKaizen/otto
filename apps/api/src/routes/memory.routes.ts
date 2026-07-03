@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { searchMemories, saveMemory, listMemories } from "@jarvis/memory";
+import { searchMemories, saveMemory, listMemories } from "@wattson/memory";
 
 const saveMemorySchema = z.object({
   title: z.string().min(1),

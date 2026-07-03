@@ -1,4 +1,4 @@
-import type { Intent } from "@jarvis/shared";
+import type { Intent } from "@wattson/shared";
 
 export type { Intent };
 
@@ -111,7 +111,7 @@ export function routeIntent(message: string): Intent {
 
   if (
     m.includes("estado del sistema") ||
-    m.includes("estado de jarvis") ||
+    m.includes("estado de wattson") ||
     m.includes("system status") ||
     m.includes("estado de la api") ||
     m.includes("cómo estás") ||

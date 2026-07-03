@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { createTTSProvider } from "@jarvis/voice";
+import { createTTSProvider } from "@wattson/voice";
 
 const ttsBodySchema = z.object({ text: z.string().min(1) });
 

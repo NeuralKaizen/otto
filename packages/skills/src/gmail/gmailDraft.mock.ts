@@ -39,7 +39,7 @@ function extractSubject(message: string): string {
   if (message.toLowerCase().includes("seguimiento")) return "Seguimiento de nuestra conversación";
   if (message.toLowerCase().includes("propuesta")) return "Propuesta de colaboración";
   if (message.toLowerCase().includes("reunión") || message.toLowerCase().includes("reunion")) return "Resumen de reunión";
-  return "Mensaje de Jarvis OS";
+  return "Mensaje de Wattson OS";
 }
 
 function generateBody(message: string, to: string, subject: string): string {
@@ -47,10 +47,10 @@ function generateBody(message: string, to: string, subject: string): string {
   const cap = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   if (subject.includes("Gracias")) {
-    return `Hola ${cap},\n\nQuería tomarme un momento para agradecerte el tiempo que dedicaste en nuestra reunión. Fue muy valioso y aprecio tu disposición.\n\nQuedo atento a los próximos pasos que acordamos.\n\nSaludos cordiales,\nJose\n\n---\n[Borrador generado por Jarvis OS — modo mock]`;
+    return `Hola ${cap},\n\nQuería tomarme un momento para agradecerte el tiempo que dedicaste en nuestra reunión. Fue muy valioso y aprecio tu disposición.\n\nQuedo atento a los próximos pasos que acordamos.\n\nSaludos cordiales,\nJose\n\n---\n[Borrador generado por Wattson OS — modo mock]`;
   }
 
-  return `Hola ${cap},\n\nEscribo en relación a: ${message.slice(0, 120)}.\n\nMe gustaría coordinar los próximos pasos. ¿Tienes disponibilidad esta semana?\n\nSaludos,\nJose\n\n---\n[Borrador generado por Jarvis OS — modo mock]`;
+  return `Hola ${cap},\n\nEscribo en relación a: ${message.slice(0, 120)}.\n\nMe gustaría coordinar los próximos pasos. ¿Tienes disponibilidad esta semana?\n\nSaludos,\nJose\n\n---\n[Borrador generado por Wattson OS — modo mock]`;
 }
 
 export const gmailDraftMock: SkillDefinition<GmailDraftInput, GmailDraftOutput> = {

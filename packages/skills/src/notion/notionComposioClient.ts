@@ -173,9 +173,9 @@ function buildMockItems(parsed: ParsedNotionAction): NotionWorkspaceItem[] {
   return [
     {
       id: "mock-notion-task-1",
-      title: parsed.query ?? "Tarea pendiente de Jarvis",
+      title: parsed.query ?? "Tarea pendiente de Wattson",
       status: parsed.wantsPendingTasks ? "Pending" : "In Progress",
-      project: parsed.projectName ?? "Jarvis",
+      project: parsed.projectName ?? "Wattson",
       assignee: parsed.personName ?? "Equipo",
       dueDate: "2026-06-20",
       url: "https://notion.so/mock-notion-task-1",
@@ -221,8 +221,8 @@ function buildComposioArguments(parsed: ParsedNotionAction, actionSlug: string, 
     case "notion_create_page":
       return {
         parent: { page_id: config.defaultParentPageId },
-        title: parsed.title ?? "Nueva página de Jarvis",
-        content: parsed.body ?? parsed.query ?? parsed.title ?? "Creado desde Jarvis",
+        title: parsed.title ?? "Nueva página de Wattson",
+        content: parsed.body ?? parsed.query ?? parsed.title ?? "Creado desde Wattson",
       };
 
     case "notion_create_task":
@@ -230,7 +230,7 @@ function buildComposioArguments(parsed: ParsedNotionAction, actionSlug: string, 
         parent: { database_id: databaseId },
         title: parsed.title ?? parsed.query ?? "Nueva tarea",
         status: parsed.status ?? "Pending",
-        content: parsed.body ?? parsed.query ?? parsed.title ?? "Creado desde Jarvis",
+        content: parsed.body ?? parsed.query ?? parsed.title ?? "Creado desde Wattson",
       };
 
     case "notion_update_page":

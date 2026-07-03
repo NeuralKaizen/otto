@@ -26,7 +26,7 @@ function mockNotionData(query: string): unknown {
         properties: {
           Name: { type: "title", title: [{ plain_text: `Seguimiento de ${query}` }] },
           Status: { type: "status", status: { name: "En progreso" } },
-          Proyectos: { type: "rollup", rollup: { array: [{ type: "title", title: [{ plain_text: "Jarvis" }] }] } },
+          Proyectos: { type: "rollup", rollup: { array: [{ type: "title", title: [{ plain_text: "Wattson" }] }] } },
         },
       },
     ],

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { ApprovalRequest, SkillPreflightResult } from "@jarvis/shared";
+import type { ApprovalRequest, SkillPreflightResult } from "@wattson/shared";
 import type { SkillContext, SkillDefinition } from "../types.js";
 import { executeDedicatedNotionAction } from "./notionComposioClient.js";
 import { getNotionWorkspaceConfig } from "./notionConfig.js";
@@ -41,7 +41,7 @@ function buildApprovalDescription(parsed: ParsedNotionAction): string {
   const action = ACTION_LABELS[parsed.action];
   const detail = parsed.title ?? parsed.query ?? parsed.pageTitle ?? "elemento de Notion";
   return [
-    "Jarvis quiere ejecutar una acción en Notion:",
+    "Wattson quiere ejecutar una acción en Notion:",
     "",
     `Action: ${action}`,
     `Detalle: ${detail}`,

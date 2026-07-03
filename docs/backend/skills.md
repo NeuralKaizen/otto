@@ -2,7 +2,7 @@
 
 ## What is a Skill?
 
-A skill is a typed, documented, permission-aware capability that Jarvis can invoke on behalf of the user.
+A skill is a typed, documented, permission-aware capability that Wattson can invoke on behalf of the user.
 Skills are pure functions: they receive typed args, return typed results, and never have side effects beyond what is declared.
 
 ## Skill Interface
@@ -22,7 +22,7 @@ interface SkillDefinition<TArgs, TResult> {
 ## Registry
 
 ```ts
-import { getSkill, listSkills } from "@jarvis/skills";
+import { getSkill, listSkills } from "@wattson/skills";
 
 const skill = getSkill("generatePostIdeas");
 const all = listSkills();

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { AgentPlan, ApprovalRequest } from "@jarvis/shared";
+import type { AgentPlan, ApprovalRequest } from "@wattson/shared";
 import type { AgentInput, EventEmitter, SkillLike } from "./types.js";
 import { approvalManager } from "./approvalManager.js";
 import { checkPermissions } from "./permissions.js";
@@ -10,7 +10,7 @@ import {
   resolveApproval,
   logToolCall,
   completeToolCall,
-} from "@jarvis/memory";
+} from "@wattson/memory";
 
 export interface SkillRegistry {
   getSkill: (name: string) => SkillLike | undefined;

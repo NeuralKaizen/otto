@@ -17,10 +17,10 @@ const NAV_ITEMS: { view: View; icon: typeof MessageSquare; label: string }[] = [
 
 export function Sidebar({ activeView, onViewChange, connected }: Props) {
   return (
-    <aside className="w-48 flex flex-col border-r border-jarvis-border bg-jarvis-surface">
-      <div className="p-4 border-b border-jarvis-border">
-        <div className="text-jarvis-cyan font-semibold text-sm tracking-widest">JARVIS OS</div>
-        <div className="text-[9px] text-jarvis-muted mt-0.5 tracking-wider">LOCAL-FIRST ASSISTANT</div>
+    <aside className="w-48 flex flex-col border-r border-wattson-border bg-wattson-surface">
+      <div className="p-4 border-b border-wattson-border">
+        <div className="text-wattson-cyan font-semibold text-sm tracking-widest">WATTSON OS</div>
+        <div className="text-[9px] text-wattson-muted mt-0.5 tracking-wider">LOCAL-FIRST ASSISTANT</div>
       </div>
 
       <nav className="flex-1 py-4 space-y-1 px-2">
@@ -30,8 +30,8 @@ export function Sidebar({ activeView, onViewChange, connected }: Props) {
             onClick={() => onViewChange(view)}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
               activeView === view
-                ? "bg-jarvis-card text-jarvis-cyan border border-jarvis-border"
-                : "text-jarvis-muted hover:text-jarvis-subtle hover:bg-jarvis-card"
+                ? "bg-wattson-card text-wattson-cyan border border-wattson-border"
+                : "text-wattson-muted hover:text-wattson-subtle hover:bg-wattson-card"
             }`}
           >
             <Icon size={14} />
@@ -40,12 +40,12 @@ export function Sidebar({ activeView, onViewChange, connected }: Props) {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-jarvis-border">
+      <div className="p-3 border-t border-wattson-border">
         <div className="flex items-center gap-2 text-xs">
           {connected ? (
             <>
-              <Wifi size={12} className="text-jarvis-cyan" />
-              <span className="text-jarvis-cyan">API Connected</span>
+              <Wifi size={12} className="text-wattson-cyan" />
+              <span className="text-wattson-cyan">API Connected</span>
             </>
           ) : (
             <>

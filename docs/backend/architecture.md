@@ -3,7 +3,7 @@
 ## Monorepo Layout
 
 ```
-jarvis-os/
+wattson-os/
 ├── apps/
 │   ├── web/       Vite + React frontend
 │   └── api/       Fastify backend

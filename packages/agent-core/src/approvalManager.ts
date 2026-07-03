@@ -1,4 +1,4 @@
-import type { ApprovalRequest, ApprovalDecision } from "@jarvis/shared";
+import type { ApprovalRequest, ApprovalDecision } from "@wattson/shared";
 
 type ApprovalResolver = (decision: ApprovalDecision) => void;
 

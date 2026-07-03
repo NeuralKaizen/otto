@@ -1,4 +1,4 @@
-import type { AgentEvent, SkillPreflightResult } from "@jarvis/shared";
+import type { AgentEvent, SkillPreflightResult } from "@wattson/shared";
 
 /** Lightweight social context carried across follow-up turns within the same conversation. */
 export interface SocialFollowUpContext {
@@ -49,7 +49,7 @@ export interface SkillDefinition<TArgs = unknown, TResult = unknown> {
    * Optional dynamic approval check, run by the executor before `execute()`.
    * Lets a skill decide — based on its own policy — that a specific request
    * needs human approval, without the executor or planner knowing about that
-   * policy. See `@jarvis/shared`'s `SkillPreflightResult`.
+   * policy. See `@wattson/shared`'s `SkillPreflightResult`.
    */
   preflight?: (args: TArgs, context: SkillContext) => Promise<SkillPreflightResult>;
 }

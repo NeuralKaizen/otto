@@ -19,7 +19,7 @@ interface LinkedInPostIdeasOutput {
 }
 
 function extractNotes(message: string): string {
-  return message.replace(/genera.*?post.*?sobre/i, "").replace(/jarvis/i, "").trim() || message;
+  return message.replace(/genera.*?post.*?sobre/i, "").replace(/wattson/i, "").trim() || message;
 }
 
 export const generatePostIdeas: SkillDefinition<GeneratePostIdeasInput, LinkedInPostIdeasOutput> = {

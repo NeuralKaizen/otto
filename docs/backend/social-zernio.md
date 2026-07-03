@@ -2,7 +2,7 @@
 
 ## Qué hace esta integración
 
-Jarvis puede responder preguntas sobre métricas sociales para:
+Wattson puede responder preguntas sobre métricas sociales para:
 
 - Instagram
 - TikTok
@@ -95,7 +95,7 @@ Busca la sección:
 - `mock`
 - `unavailable`
 
-## Prompts que Jarvis debería entender
+## Prompts que Wattson debería entender
 
 - `Analiza las métricas de Instagram de @nike`
 - `Dame las estadísticas de TikTok de @khaby.lame`
