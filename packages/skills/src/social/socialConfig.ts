@@ -6,6 +6,8 @@ export interface SocialMetricsConfig {
   zernioReadOnlyMode: boolean;
   zernioFallbackToMock: boolean;
   zernioDefaultLimit: number;
+  /** Cuenta propia del usuario: fallback cuando el mensaje no trae @username (clave en voz, nadie dicta la arroba). */
+  defaultUsername?: string;
 }
 
 export type SocialRuntimeMode = "zernio" | "mock" | "unavailable";
@@ -68,6 +70,7 @@ export function getSocialConfig(): SocialMetricsConfig {
     zernioReadOnlyMode: parseEnvBoolean("ZERNIO_READ_ONLY_MODE", true),
     zernioFallbackToMock: parseEnvBoolean("ZERNIO_FALLBACK_TO_MOCK", true),
     zernioDefaultLimit: parsePositiveInt(rawDefaultLimit, 10),
+    defaultUsername: env("SOCIAL_DEFAULT_USERNAME"),
   };
 }
 

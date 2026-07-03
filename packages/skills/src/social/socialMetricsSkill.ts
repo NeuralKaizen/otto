@@ -1,6 +1,7 @@
 import type { SkillDefinition, SkillContext } from "../types.js";
 import type { SocialContentItem, SocialMetricsResponse, SocialProfileMetrics } from "./types.js";
 import { parseSocialRequest } from "./socialParser.js";
+import { getSocialConfig } from "./socialConfig.js";
 import { routePlatformRequest } from "./platformRouter.js";
 
 interface SocialMetricsInput {
@@ -138,7 +139,8 @@ export const socialMetricsSkill: SkillDefinition<SocialMetricsInput, SocialMetri
 
   async execute(args: SocialMetricsInput, ctx: SkillContext): Promise<SocialMetricsResponse> {
     const { platform, username, queryType } = parseSocialRequest(args.message, {
-      fallbackUsername: ctx.socialContext?.username,
+      // Prioridad: @ explícito en el mensaje > cuenta del follow-up en sesión > cuenta propia configurada.
+      fallbackUsername: ctx.socialContext?.username ?? getSocialConfig().defaultUsername,
       fallbackPlatform: ctx.socialContext?.platform as import("./types.js").SocialPlatform | undefined,
     });
 

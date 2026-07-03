@@ -47,7 +47,8 @@ export function parseSocialRequest(message: string, options?: SocialParserOption
   }
 
   const extracted = extractUsername(message);
-  const username = extracted ?? options?.fallbackUsername ?? null;
+  const fallback = options?.fallbackUsername ? normalizeUsername(options.fallbackUsername) : null;
+  const username = extracted ?? fallback;
   const queryType = isTopContentQuery(message) ? "top_content" : "overview";
 
   return { platform, username, queryType };

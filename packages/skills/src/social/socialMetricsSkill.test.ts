@@ -119,3 +119,79 @@ test("sin contexto suficiente pide la cuenta mínima para follow-up de top conte
   assert.match(result.summary, /¿De qué cuenta quieres que revise el contenido más visto\?/);
   assert.match(result.warnings.join(" "), /no tengo una cuenta previa/i);
 });
+
+test("sin @ ni contexto de sesión, usa SOCIAL_DEFAULT_USERNAME (consulta por voz: 'mis métricas')", async () => {
+  process.env.ENABLE_SOCIAL_METRICS = "true";
+  process.env.ENABLE_ZERNIO = "true";
+  process.env.ZERNIO_API_KEY = "configured";
+  process.env.SOCIAL_DEFAULT_USERNAME = "lucianomusellaa";
+
+  const responses = [
+    jsonResponse({
+      accounts: [
+        {
+          _id: "acct_123",
+          platform: "instagram",
+          username: "@lucianomusellaa",
+          displayName: "Luciano Musella",
+          currentFollowers: 1200,
+        },
+      ],
+    }),
+    jsonResponse({
+      accounts: [{ _id: "acct_123", currentFollowers: 1200 }],
+      stats: { acct_123: [{ date: "2026-06-01", followers: 1200 }] },
+    }),
+    jsonResponse({
+      posts: [
+        {
+          postId: "post_1",
+          content: "Un post",
+          publishedAt: "2026-06-01T10:00:00.000Z",
+          analytics: { views: 100, impressions: 200, likes: 10, comments: 1, shares: 0, saves: 0, clicks: 0 },
+        },
+      ],
+    }),
+  ];
+
+  global.fetch = (async () => {
+    const next = responses.shift();
+    assert.ok(next, "unexpected extra fetch call");
+    return next;
+  }) as typeof fetch;
+
+  const result = await socialMetricsSkill.execute(
+    { message: "cómo vienen mis métricas de instagram" },
+    {}
+  );
+
+  assert.equal(result.request.username, "lucianomusellaa");
+  assert.equal(result.request.platform, "instagram");
+  assert.equal(result.profiles.length, 1);
+  assert.equal(result.dataSource, "zernio");
+});
+
+test("el contexto de sesión gana sobre SOCIAL_DEFAULT_USERNAME en follow-ups", async () => {
+  process.env.ENABLE_SOCIAL_METRICS = "true";
+  process.env.ENABLE_ZERNIO = "true";
+  process.env.ZERNIO_API_KEY = "configured";
+  process.env.SOCIAL_DEFAULT_USERNAME = "lucianomusellaa";
+
+  const responses = [
+    jsonResponse({ accounts: [{ _id: "acct_9", platform: "instagram", username: "@otracuenta", currentFollowers: 10 }] }),
+    jsonResponse({ accounts: [{ _id: "acct_9", currentFollowers: 10 }], stats: { acct_9: [] } }),
+    jsonResponse({ posts: [] }),
+  ];
+  global.fetch = (async () => {
+    const next = responses.shift();
+    assert.ok(next, "unexpected extra fetch call");
+    return next;
+  }) as typeof fetch;
+
+  const result = await socialMetricsSkill.execute(
+    { message: "y cómo viene esa cuenta" },
+    { socialContext: { platform: "instagram", username: "otracuenta", dataSource: "zernio" } }
+  );
+
+  assert.equal(result.request.username, "otracuenta");
+});
