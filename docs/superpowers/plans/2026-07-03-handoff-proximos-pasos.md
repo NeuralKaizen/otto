@@ -2,11 +2,11 @@
 
 > **Para la próxima sesión de Claude:** este doc es el punto de entrada. Leelo entero antes de tocar código. El historial fino de decisiones está en `.superpowers/sdd/progress.md` (ledger, gitignoreado — solo local) y los specs/planes en `docs/superpowers/`.
 
-**Fecha:** 2026-07-03 · **Branch principal:** `feat/voice-hud-prototype` (todo mergeado y pusheado en `bf49fb4`)
+**Fecha:** 2026-07-03 (última actualización tras `b4d44cc`) · **Branch principal:** `feat/voice-hud-prototype` (todo mergeado y pusheado; HEAD útil: `b4d44cc`)
 
 ## Qué funciona hoy (verificado E2E con mic y datos reales)
 
-El ciclo completo de voz: decir **"Alfred"** → preguntar (es-AR, Web Speech) → el agente responde con **voz de ElevenLabs** (`eleven_flash_v2_5`) → si la consulta es de métricas sociales, dibuja **widgets con datos reales de Zernio** (KPIs + gráficas de barras SVG con coreografía beat a beat).
+El ciclo completo de voz: decir **"Alfred"** → saluda a Luciano (rotación de 3 saludos, **español neutro — el usuario rechazó el voseo**) y recién ahí abre el mic → preguntar (es-AR, Web Speech) → el agente responde con **voz de ElevenLabs** (`eleven_flash_v2_5`) → si la consulta es de métricas sociales, dibuja **widgets con datos reales de Zernio** (KPIs + gráficas de barras SVG con coreografía beat a beat). Si la conversación falla, lo dice en voz alta ("Perdón, no pude procesar eso...") y vuelve a escuchar — nada falla mudo. Frases del asistente: `WAKE_GREETINGS` y `CONVERSE_ERROR_NARRATION` en `sessionMachine.ts`.
 
 - Interfaz: `apps/hud` (React 19 + Vite, puerto 5173). Backend: `apps/api` (Fastify, puerto 4000).
 - Cuenta de Instagram del usuario: **@lucianomusellaa** — configurada como `SOCIAL_DEFAULT_USERNAME` en `.env`, así "cómo vienen mis métricas de instagram" (sin @, como sale del dictado) resuelve a su cuenta. Prioridad: `@` explícito > contexto de sesión > default.
@@ -41,16 +41,16 @@ El `.env` raíz ya tiene todo: `VOICE_PROVIDER=elevenlabs`, `ELEVENLABS_API_KEY`
 1. **Chrome permite UN solo SpeechRecognition por página.** El wake detector se pausa mientras la sesión está abierta (`useSession` lo maneja por estado). Si voz "deja de escuchar", sospechar de esto primero.
 2. **`agentClient.dispose()` es permanente.** React StrictMode (dev) desmonta/remonta a propósito; por eso existe el hook `useAgentClient` (crea el cliente dentro del efecto). No volver a `useMemo(createAgentClient) + dispose en cleanup`.
 3. **El backend acepta UN solo origen CORS** (`WEB_URL`). Hoy apunta a :5173 (HUD); `apps/web` (:3000) quedó sin acceso.
-4. **Los fallos de conversación son mudos**: `converseFailed` vuelve a escuchar sin decir nada. Un timeout se siente igual que "no me escuchó" — engaña en el debugging (ver pendiente #2).
+4. **Alfred nunca debe hablar con el mic abierto** (se transcribe a sí mismo). Por eso saludo y error pasan por el estado `speaking` y el mic se abre en `ttsEnd`. Mantener ese patrón en cualquier narración nueva.
+5. **Las frases del asistente van en español neutro** (nada de voseo) — preferencia explícita del usuario.
 
 ## Pendientes, en orden sugerido
 
 ### 1. Rotar la API key de ElevenLabs (seguridad, 5 min, primero)
 La key actual pasó por el chat de una sesión. Dashboard de ElevenLabs → API Keys → generar nueva → pegar en `.env` (`ELEVENLABS_API_KEY`) → reiniciar backend.
 
-### 2. ~~Errores audibles~~ — HECHO (b4d44cc, junto con saludo al despertar)
-Cuando `converse` falla (timeout, red, backend caído), el FSM emite `converseFailed` y vuelve a `listening` **en silencio**. Hacer que hable algo tipo "perdón, no pude procesar eso" antes de volver a escuchar.
-- Tocar: `sessionMachine.ts` (efecto `speak` en la transición de `converseFailed`) + tests en `sessionMachine.test.ts`/`useSession.test.ts`. Ojo: después de hablar el error tiene que volver a `listening`, no quedarse en `speaking`.
+### 2. ~~Errores audibles + saludo al despertar~~ — HECHO (`b4d44cc`)
+`converseFailed` y `wakeDetected` ahora pasan por `speaking` (narración) y `ttsEnd` abre/reabre el mic. Nada pendiente aquí.
 
 ### 3. Barge-in (interrumpir a Alfred mientras habla)
 Todo está listo menos el disparo: el evento `bargeIn` existe en el FSM (`speaking → listening` + `stopSpeaking`) y `ElevenLabsSpeaker.stop()` corta limpio, pero **nadie despacha `bargeIn`** — el checklist E2E lo promete y es imposible hoy.
@@ -84,4 +84,4 @@ Todo está listo menos el disparo: el evento `bargeIn` existe en el FSM (`speaki
 - Flujo superpowers: brainstorming → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → ejecución con subagentes + reviews. TDD siempre.
 - Commits en español, con `Co-Authored-By: Claude <modelo> <noreply@anthropic.com>`.
 - Está OK modificar código del colega — la meta es que funcione bien (preferencia explícita del usuario).
-- Antes de asumir un bug "imposible", revisar las 4 lecciones de arriba y el ledger.
+- Antes de asumir un bug "imposible", revisar las 5 lecciones de arriba y el ledger.
