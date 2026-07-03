@@ -137,3 +137,65 @@ describe("agentClient", () => {
     client.dispose();
   });
 });
+
+describe("agentClient widgets", () => {
+  const zernioResult = {
+    profiles: [
+      { platform: "instagram", username: "luciano", followers: 100, totalPosts: 5, lastUpdated: "t" },
+    ],
+  };
+
+  it("entrega los widgets extraídos de tool_call_completed en message_done", async () => {
+    const { client, sock } = setup();
+    const p = client.converse("métricas de @luciano");
+    await Promise.resolve();
+    sock.emit({ type: "message_started", messageId: "m1", provider: "openai", timestamp: "t" });
+    sock.emit({ type: "tool_call_completed", toolCallId: "tc1", toolName: "social_metrics_lookup", result: zernioResult, timestamp: "t" });
+    sock.emit({ type: "message_done", messageId: "m1", content: "Aquí tienes", timestamp: "t" });
+    const r = await p;
+    expect(r.narration).toBe("Aquí tienes");
+    expect(r.widgets.map((w) => `${w.type}:${w.title}`)).toEqual([
+      "kpi_card:Seguidores",
+      "metric_chart:Posts por plataforma",
+    ]);
+    client.dispose();
+  });
+
+  it("tools sin datos de métricas no aportan widgets", async () => {
+    const { client, sock } = setup();
+    const p = client.converse("x");
+    await Promise.resolve();
+    sock.emit({ type: "message_started", messageId: "m1", provider: "openai", timestamp: "t" });
+    sock.emit({ type: "tool_call_completed", toolCallId: "tc1", toolName: "notion_query", result: { rows: [] }, timestamp: "t" });
+    sock.emit({ type: "message_done", messageId: "m1", content: "ok", timestamp: "t" });
+    await expect(p).resolves.toEqual({ narration: "ok", widgets: [] });
+    client.dispose();
+  });
+
+  it("los widgets no se filtran entre runs consecutivos", async () => {
+    const { client, sock } = setup();
+    const p1 = client.converse("uno");
+    await Promise.resolve();
+    sock.emit({ type: "message_started", messageId: "m1", provider: "openai", timestamp: "t" });
+    sock.emit({ type: "tool_call_completed", toolCallId: "tc1", toolName: "social_metrics_lookup", result: zernioResult, timestamp: "t" });
+    sock.emit({ type: "message_done", messageId: "m1", content: "ok", timestamp: "t" });
+    expect((await p1).widgets.length).toBeGreaterThan(0);
+
+    const p2 = client.converse("dos");
+    await Promise.resolve();
+    sock.emit({ type: "message_started", messageId: "m2", provider: "openai", timestamp: "t" });
+    sock.emit({ type: "message_done", messageId: "m2", content: "ok2", timestamp: "t" });
+    await expect(p2).resolves.toEqual({ narration: "ok2", widgets: [] });
+    client.dispose();
+  });
+
+  it("una respuesta con error no entrega widgets parciales", async () => {
+    const { client, sock } = setup();
+    const p = client.converse("x");
+    await Promise.resolve();
+    sock.emit({ type: "tool_call_completed", toolCallId: "tc1", toolName: "social_metrics_lookup", result: zernioResult, timestamp: "t" });
+    sock.emit({ type: "error", error: "boom", timestamp: "t" });
+    await expect(p).rejects.toThrow("boom");
+    client.dispose();
+  });
+});

@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@wattson/shared";
 import type { RenderedWidget } from "../voice/types";
+import { widgetsFromToolResult } from "./metricsWidgets";
 
 const DEFAULT_API_URL = "http://localhost:4000";
 const DEFAULT_WS_URL = "ws://localhost:4000/ws";
@@ -32,6 +33,9 @@ interface PendingRun {
   resolve: (r: ConverseResult) => void;
   reject: (e: Error) => void;
   timer: ReturnType<typeof setTimeout>;
+  // Widgets extraídos de los tool_call_completed de ESTE run; se entregan
+  // en message_done y mueren con el run (nunca cruzan a un turno siguiente).
+  widgets: RenderedWidget[];
   // Resolves once the initiating POST /chat response has been fully
   // processed (including capturing a returned conversationId). Successful
   // completion (message_done) is gated on this so a fast WS event can never
@@ -103,10 +107,13 @@ export function createAgentClient(options: AgentClientOptions = {}): AgentClient
           // always see the learned conversationId.
           run.ready.then(() => {
             if (pending !== run) return;
-            if (content && content.trim()) settleResolve({ narration: content, widgets: [] });
+            if (content && content.trim()) settleResolve({ narration: content, widgets: run.widgets });
             else settleReject(new Error("empty response"));
           });
         }
+        break;
+      case "tool_call_completed":
+        pending.widgets.push(...widgetsFromToolResult(e.toolName, e.result));
         break;
       case "approval_requested": {
         const run = pending;
@@ -138,7 +145,7 @@ export function createAgentClient(options: AgentClientOptions = {}): AgentClient
         return;
       }
       const timer = setTimeout(() => settleReject(new Error("response timeout")), timeoutMs);
-      const run: PendingRun = { messageId: null, resolve, reject, timer, ready: Promise.resolve() };
+      const run: PendingRun = { messageId: null, resolve, reject, timer, widgets: [], ready: Promise.resolve() };
       pending = run;
 
       run.ready = fetchImpl(`${apiUrl}/chat`, {
