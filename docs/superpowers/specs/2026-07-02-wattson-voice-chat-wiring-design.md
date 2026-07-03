@@ -18,7 +18,8 @@ Replace the HUD's dead synchronous `POST /converse` call with an adapter that dr
   - The event contract lives in `@wattson/shared` (`packages/shared/src/events.ts`): `AgentEvent` is a discriminated union on `type`:
     `status | intent_detected | plan_created | message_started | message_delta | message_done | tool_call_started | tool_call_completed | approval_requested | approval_resolved | error`.
     Relevant fields: `message_started { messageId, provider, model? }`, `message_delta { messageId, delta }`, `message_done { messageId, content, cancelled? }`, `error { error }`.
-  - Client→server WS messages exist only for `approval_decision`/`approval_response` and `cancel_generation` — **not used in this iteration**.
+  - Client→server WS messages exist for `approval_decision`/`approval_response` and `cancel_generation`. This iteration uses only `approval_decision` (to auto-reject writes; see approval handling below); `cancel_generation` is not used.
+- **Local backend config** (from the colleague's real `.env`, now at repo root, gitignored): real OpenAI brain (`gpt-4o-mini`), Composio **enabled** (Notion/Gmail/Google Calendar) with reads free and writes gated behind approval, Zernio social metrics read-only. Net effect for this iteration: **reads work end-to-end**; **writes trigger an approval** that we auto-decline audibly (approval UX is iteration 2).
 - Reference implementation to port from (colleague's web client): `apps/web/src/lib/api.ts` (`sendChat`) and `apps/web/src/hooks/useAgentSocket.ts` (WS consumer).
 
 ## Design
@@ -49,7 +50,9 @@ The `converse` promise must never hang (the FSM would stay stuck in `processing`
 - **`error` event** while awaiting → reject. The FSM's `converseFailed` returns to `listening`.
 - **Timeout** (no `message_done` within `RESPONSE_TIMEOUT_MS`, default 30000) → reject.
 - **`message_done.cancelled === true`** → resolve with whatever text arrived, or reject if empty (treat as failure).
-- **`approval_requested` event** → this iteration is read-only (default env: integrations disabled, `COMPOSIO_READ_ONLY_MODE=true`), so approvals should not fire. If one does, treat it defensively as a non-completion: reject the promise (→ `converseFailed`) and log a warning that approvals aren't wired yet. Do NOT leave the promise pending.
+- **`approval_requested` event** → the local env has Composio **enabled** with write actions gated behind approval (`COMPOSIO_READ_ONLY_MODE=false`, `REQUIRE_APPROVAL=true`), so approvals **will** fire whenever the user asks for a write (create Notion task, send email, create calendar event). Approval UX is deferred to iteration 2, so this iteration handles them **gracefully and audibly**, never leaving the promise or the server hanging:
+  1. Send an `approval_decision` over the WS (`{ approvalId, approved: false, reason: "approvals not wired in HUD yet" }`) to release the backend's pending approval immediately (otherwise it sits until `APPROVAL_TIMEOUT_MS`, 5 min).
+  2. Resolve `converse` with a **canned narration** — e.g. "Todavía no puedo ejecutar acciones que requieren aprobación; eso llega en la próxima versión." — so the HUD speaks the reason and returns to `listening` (rather than failing silently). Reads are unaffected and complete normally via `message_done`.
 - **POST /chat failure** (non-2xx / network) → reject.
 
 ### Configuration
@@ -78,7 +81,7 @@ The FSM (`sessionMachine.ts`), `useSession.ts`, TTS/STT/wake adapters, and widge
   - `conversationId` is sent on the second `converse` call after being learned from the first response.
   - `error` event → promise rejects.
   - Timeout (no `message_done`) → promise rejects (use fake timers).
-  - `approval_requested` mid-run → promise rejects with a clear reason (approvals not wired).
+  - `approval_requested` mid-run → the client sends an `approval_decision { approved: false }` over the (fake) WS AND resolves with the canned narration (NOT a rejection); assert both the WS message was sent and the resolved narration text.
   - Two sequential `converse` calls don't cross-wire (second run binds to its own `message_started`).
 - The existing FSM suite (37/37) stays green — it uses a fake `converse` and is untouched.
 - No live backend is required for tests.
