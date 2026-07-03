@@ -19,10 +19,10 @@ describe("sessionMachine", () => {
   });
 
   it("listening + speechEnd con transcript -> processing, llama converse", () => {
-    let s = reduce("listening", { kind: "transcript", text: "hola otto", final: true }).state;
+    let s = reduce("listening", { kind: "transcript", text: "hola wattson", final: true }).state;
     const r = reduce(s, { kind: "speechEnd" });
     expect(r.state).toBe("processing");
-    expect(r.effects).toContainEqual({ kind: "callConverse", text: "hola otto" });
+    expect(r.effects).toContainEqual({ kind: "callConverse", text: "hola wattson" });
   });
 
   it("processing + response -> speaking, renderiza y habla", () => {
@@ -64,8 +64,8 @@ describe("sessionMachine", () => {
   });
 
   it("speechEnd espurio tras consumir el transcript NO re-dispara converse", () => {
-    // turno 1: transcript + speechEnd consumen "hola otto"
-    reduce("listening", { kind: "transcript", text: "hola otto", final: true });
+    // turno 1: transcript + speechEnd consumen "hola wattson"
+    reduce("listening", { kind: "transcript", text: "hola wattson", final: true });
     reduce("listening", { kind: "speechEnd" });
     // ahora un speechEnd sin nuevo transcript no debe llamar converse
     const r = reduce("listening", { kind: "speechEnd" });

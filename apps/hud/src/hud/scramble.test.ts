@@ -25,8 +25,8 @@ describe("scrambleFrame", () => {
   });
 
   it("is deterministic for the same arguments", () => {
-    expect(scrambleFrame("otto", 0.25, GLYPH_POOL, 9)).toBe(
-      scrambleFrame("otto", 0.25, GLYPH_POOL, 9),
+    expect(scrambleFrame("wattson", 0.25, GLYPH_POOL, 9)).toBe(
+      scrambleFrame("wattson", 0.25, GLYPH_POOL, 9),
     );
   });
 

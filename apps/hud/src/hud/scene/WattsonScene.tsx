@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import type { SessionState } from "../../voice/types";
-import { OttoGLEngine } from "./glengine";
+import { WattsonGLEngine } from "./glengine";
 
 // Escena WebGL2 full-viewport. `getAmplitude` entrega la amplitud real de
 // voz (mic via Web Audio) sin provocar re-renders; el motor la mezcla con
 // su envolvente ambiente.
-export function OttoScene({
+export function WattsonScene({
   state,
   getAmplitude,
 }: {
@@ -13,7 +13,7 @@ export function OttoScene({
   getAmplitude?: () => number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<OttoGLEngine | null>(null);
+  const engineRef = useRef<WattsonGLEngine | null>(null);
   const ampRef = useRef<(() => number) | undefined>(undefined);
 
   useEffect(() => {
@@ -31,15 +31,15 @@ export function OttoScene({
     });
     if (!gl) return; // jsdom / GPU vetada: la escena se apaga sola
 
-    let engine: OttoGLEngine;
+    let engine: WattsonGLEngine;
     try {
-      engine = new OttoGLEngine(gl);
+      engine = new WattsonGLEngine(gl);
     } catch {
       return; // shader no compiló en este driver: no tumbar la app
     }
     engineRef.current = engine;
     if (import.meta.env.DEV) {
-      (window as unknown as { __ottoEngine?: OttoGLEngine }).__ottoEngine = engine;
+      (window as unknown as { __wattsonEngine?: WattsonGLEngine }).__wattsonEngine = engine;
     }
 
     const media = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
@@ -81,5 +81,5 @@ export function OttoScene({
     engineRef.current?.setMode(state);
   }, [state]);
 
-  return <canvas ref={canvasRef} className="otto-scene" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="wattson-scene" aria-hidden="true" />;
 }

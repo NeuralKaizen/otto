@@ -25,7 +25,7 @@ describe("DecryptText component", () => {
 
   it("cancels its animation frame on unmount", () => {
     const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
-    const { unmount } = render(<DecryptText text="otto" startDelay={0} />);
+    const { unmount } = render(<DecryptText text="wattson" startDelay={0} />);
     unmount();
     expect(cancelSpy).toHaveBeenCalled();
   });

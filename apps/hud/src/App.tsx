@@ -4,7 +4,7 @@ import { useSession } from "./voice/useSession";
 import { WebSpeechWakeWord, WebSpeechTranscriber } from "./voice/adapters/webSpeech";
 import { SpeechSynthesisSpeaker } from "./voice/adapters/speechSynthesis";
 import { callConverse } from "./api/converse";
-import { OttoScene } from "./hud/scene/OttoScene";
+import { WattsonScene } from "./hud/scene/WattsonScene";
 import { useMicLevel } from "./hud/useMicLevel";
 import { Chrome } from "./hud/Chrome";
 import { Captions } from "./hud/Captions";
@@ -86,7 +86,7 @@ export default function App() {
 
   return (
     <div className="hud" data-state={state}>
-      <OttoScene state={state} getAmplitude={getMicLevel} />
+      <WattsonScene state={state} getAmplitude={getMicLevel} />
       <OrbitalRings />
       <div className="hud-vignette" aria-hidden="true" />
       <div className="hud-grain" aria-hidden="true" />

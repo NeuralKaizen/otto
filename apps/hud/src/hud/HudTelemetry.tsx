@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 // ─── Corner telemetry readouts ────────────────────────────────────────────
 //
 // Decorative HUD chrome — system flavor, NOT business data. Never surface
-// invented numbers that could read as real metrics (Otto's "el dato manda"
+// invented numbers that could read as real metrics (Wattson's "el dato manda"
 // rule); these are status flags, honest signals (session uptime), and static
 // decorative markers. Fine-print monospace anchored to the corners.
 

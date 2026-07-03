@@ -11,7 +11,7 @@ export type SessionEvent =
   | { kind: "transcript"; text: string; final: boolean }
   | { kind: "closingPhrase" }
   | { kind: "speechEnd" }            // endpointing: el usuario terminó de hablar
-  | { kind: "bargeIn" }             // el usuario habla mientras Otto habla
+  | { kind: "bargeIn" }             // el usuario habla mientras Wattson habla
   | { kind: "response"; narration: string; widgets: RenderedWidget[] }
   | { kind: "ttsEnd" }
   | { kind: "timeout" }            // silencio largo de seguridad

@@ -3,7 +3,7 @@ import type { SessionState } from "../../voice/types";
 // Motor WebGL2 de la escena — v3 "cuerpo de luz".
 //
 // Un solo sistema de ~14k partículas que MUTA de forma por estado:
-//   idle:       cielo estrellado a pantalla completa + wordmark OTTO
+//   idle:       cielo estrellado a pantalla completa + wordmark WATTSON
 //   listening:  esfera-grafo densa, iluminada (diffuse + rim), dorada
 //   processing: vórtice de anillo de polvo (ref. videos de docs/), cian
 //   speaking:   la esfera late con la voz, ondas recorren el cuerpo
@@ -17,7 +17,7 @@ import type { SessionState } from "../../voice/types";
 const N = 14000;
 const SHELL = 0.9;  // fracción de la esfera en cáscara (el resto, volumen)
 const MAX_EDGES = 4200;
-const WORD = "OTTO";
+const WORD = "WATTSON";
 
 // Especificación estática de los 3 anillos HUD: [factor-radio, velocidad-rotación].
 // Definida a nivel de módulo para evitar allocaciones por frame en drawRings.
@@ -204,7 +204,7 @@ function samplePalette(mode: SessionState, t: number): RGB {
 
 interface Wave { r: number; v: number; a0: number }
 
-export class OttoGLEngine {
+export class WattsonGLEngine {
   private gl: WebGL2RenderingContext;
   private bgProg: WebGLProgram;
   private ptProg: WebGLProgram;
@@ -233,8 +233,8 @@ export class OttoGLEngine {
   // Los guards (vIdx+2 > MAX_RING_VERTS) previenen cualquier desbordamiento.
   // Se usa 1536 (1024+512) para dar margen amplio a futuras capas de telemetría.
   private static readonly MAX_RING_VERTS = 1536;
-  private rpos = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
-  private rcol = new Float32Array(OttoGLEngine.MAX_RING_VERTS * 4); // r,g,b,a por vértice
+  private rpos = new Float32Array(WattsonGLEngine.MAX_RING_VERTS * 2); // x,y por vértice
+  private rcol = new Float32Array(WattsonGLEngine.MAX_RING_VERTS * 4); // r,g,b,a por vértice
   private uni: Record<string, WebGLUniformLocation | null> = {};
 
   private mode: SessionState = "idle";
@@ -957,7 +957,7 @@ export class OttoGLEngine {
     const breathPulse = (this.breath - 0.5) * 2;
     const breathR = this.reducedMotion ? 0 : 0.014 * breathPulse + amp * 0.03;
     // alpha base "vivo": piso + respiración + surge con la voz. Blending aditivo, así
-    // que más alpha = más glow → el marco se ilumina cuando Otto habla/escucha.
+    // que más alpha = más glow → el marco se ilumina cuando Wattson habla/escucha.
     const baseA = intensity * (0.22 + 0.12 * this.breath + 0.30 * amp);
 
     let vIdx = 0;  // siguiente vértice disponible
@@ -983,7 +983,7 @@ export class OttoGLEngine {
 
       // ---- arco como gl.LINES (120 segmentos) ----
       for (let s = 0; s < SEGS; s++) {
-        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
+        if (vIdx + 2 > WattsonGLEngine.MAX_RING_VERTS) break;
         const a0 = rotOff + (s / SEGS) * Math.PI * 2;
         const a1 = rotOff + ((s + 1) / SEGS) * Math.PI * 2;
         const p0x = cx + Math.cos(a0) * r;
@@ -1006,7 +1006,7 @@ export class OttoGLEngine {
       const chaseDir = (ri % 2 === 0) ? 1 : -1;
       const chaseSpeed = this.reducedMotion ? 0 : (0.6 + ri * 0.28);
       for (let ti = 0; ti < TICKS; ti++) {
-        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
+        if (vIdx + 2 > WattsonGLEngine.MAX_RING_VERTS) break;
         const frac = ti / TICKS;
         const ang = rotOff + frac * Math.PI * 2;
         const isMajor = (ti % 5) === 0;
@@ -1046,7 +1046,7 @@ export class OttoGLEngine {
       const BLIP_SPAN = 0.42;                     // ~24° de arco
       const blipA = intensity * (0.55 + 0.45 * amp);
       for (let s = 0; s < BLIP_SEGS; s++) {
-        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
+        if (vIdx + 2 > WattsonGLEngine.MAX_RING_VERTS) break;
         const f0 = s / BLIP_SEGS;
         const f1 = (s + 1) / BLIP_SEGS;
         const a0 = blipCenter + (f0 - 0.5) * BLIP_SPAN;
@@ -1088,7 +1088,7 @@ export class OttoGLEngine {
       // segmentos proporcionales a amp — mínimo 2, máximo SEGS
       const arcSegs = Math.max(2, Math.round(SEGS * amp));
       for (let s = 0; s < arcSegs; s++) {
-        if (vIdx + 2 > OttoGLEngine.MAX_RING_VERTS) break;
+        if (vIdx + 2 > WattsonGLEngine.MAX_RING_VERTS) break;
         const a0 = arcStart + (s / arcSegs) * arcSweep;
         const a1 = arcStart + ((s + 1) / arcSegs) * arcSweep;
         const p0x = cx + Math.cos(a0) * outerR;

@@ -16,9 +16,9 @@ describe("fake adapters", () => {
     const onFinal = vi.fn();
     t.start(onPartial, onFinal);
     t.emit("hola", false);
-    t.emit("hola otto", true);
+    t.emit("hola wattson", true);
     expect(onPartial).toHaveBeenCalledWith("hola");
-    expect(onFinal).toHaveBeenCalledWith("hola otto");
+    expect(onFinal).toHaveBeenCalledWith("hola wattson");
   });
 
   it("FakeSpeaker llama onEnd cuando se invoca finish()", () => {

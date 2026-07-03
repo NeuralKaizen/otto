@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 //
 // When a banner appears, a swarm of particles is fired FROM the core center
 // (50vw, 50vh) OUT toward the banner's slot, arriving as the card materializes
-// and bursting on impact. This ties each banner to Otto's core.
+// and bursting on impact. This ties each banner to Wattson's core.
 //
 // Rendered as one transparent full-viewport <canvas> sitting above the WebGL
 // scene and below the cards (first child of .hud-canvas). One rAF loop drives

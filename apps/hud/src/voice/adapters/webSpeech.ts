@@ -33,7 +33,7 @@ function safeStart(rec: any) {
   }
 }
 
-// Wake word: reconocimiento continuo que busca "otto" en el transcript.
+// Wake word: reconocimiento continuo que busca "wattson" en el transcript.
 export class WebSpeechWakeWord implements WakeWordDetector {
   private rec: any;
   start(onWake: () => void) {
@@ -42,7 +42,7 @@ export class WebSpeechWakeWord implements WakeWordDetector {
     this.rec.onresult = (e: any) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript.toLowerCase();
-        if (t.includes("otto")) onWake();
+        if (t.includes("wattson")) onWake();
       }
     };
     this.rec.onend = () => { if (this.rec) safeStart(this.rec); }; // reinicia

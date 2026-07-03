@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 //
 // A thin data-beam links the core center to each banner slot, with flowing
 // dashes (circuit/telemetry feel) that fade in on the banner's stagger delay.
-// Reinforces that the banners "emit" from Otto's core. Viewport-sized SVG so
+// Reinforces that the banners "emit" from Wattson's core. Viewport-sized SVG so
 // endpoints land in real pixels; recomputed on resize. Sits below the banners.
 
 export interface LinkTarget {
