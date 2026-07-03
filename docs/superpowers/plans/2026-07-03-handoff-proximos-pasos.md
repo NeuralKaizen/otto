@@ -48,7 +48,7 @@ El `.env` raíz ya tiene todo: `VOICE_PROVIDER=elevenlabs`, `ELEVENLABS_API_KEY`
 ### 1. Rotar la API key de ElevenLabs (seguridad, 5 min, primero)
 La key actual pasó por el chat de una sesión. Dashboard de ElevenLabs → API Keys → generar nueva → pegar en `.env` (`ELEVENLABS_API_KEY`) → reiniciar backend.
 
-### 2. Errores audibles (UX, chico y de alto impacto)
+### 2. ~~Errores audibles~~ — HECHO (b4d44cc, junto con saludo al despertar)
 Cuando `converse` falla (timeout, red, backend caído), el FSM emite `converseFailed` y vuelve a `listening` **en silencio**. Hacer que hable algo tipo "perdón, no pude procesar eso" antes de volver a escuchar.
 - Tocar: `sessionMachine.ts` (efecto `speak` en la transición de `converseFailed`) + tests en `sessionMachine.test.ts`/`useSession.test.ts`. Ojo: después de hablar el error tiene que volver a `listening`, no quedarse en `speaking`.
 
