@@ -81,7 +81,12 @@ export function useSession(deps: Deps) {
               .then((r) =>
                 dispatchRef.current({ kind: "response", narration: r.narration, widgets: r.widgets }),
               )
-              .catch(() => dispatchRef.current({ kind: "converseFailed" }));
+              .catch((err: unknown) => {
+                // No fallar mudo NI ciego: la narración de error avisa al usuario,
+                // pero la causa real (CORS, conexión, timeout) va a la consola.
+                console.error("[session] converse falló:", err);
+                dispatchRef.current({ kind: "converseFailed" });
+              });
             break;
           case "armSilenceTimer":
             if (silenceTimer.current) clearTimeout(silenceTimer.current);
