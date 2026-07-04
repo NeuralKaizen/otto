@@ -71,18 +71,28 @@ describe("useSession", () => {
     expect(wake.active).toBe(true); // reanudado en idle
   });
 
-  it('barge-in: "Alfred" mientras habla corta el TTS y abre el mic', () => {
-    const { result, wake, tts } = setup();
+  it("el SALUDO no se auto-corta: durante el saludo el wake está apagado y un 2º 'Alfred' no interrumpe", () => {
+    // El wake continuo dispara onWake varias veces por un solo "Alfred".
+    const { result, wake } = setup();
     act(() => wake.trigger());
-    expect(result.current.state).toBe("speaking");
-    expect(wake.active).toBe(true); // el wake sigue escuchando mientras Alfred habla
+    expect(result.current.state).toBe("speaking"); // saludando
+    expect(wake.active).toBe(false); // apagado durante el saludo → no se auto-escucha
 
-    act(() => wake.trigger()); // "Alfred" de nuevo = interrumpir
+    act(() => wake.trigger()); // llamada extra del mismo "Alfred": inofensiva
+    expect(result.current.state).toBe("speaking"); // sigue saludando, no se cortó
+  });
+
+  it('barge-in real: durante una RESPUESTA, "Alfred" corta el TTS y abre el mic', async () => {
+    const { result, wake, stt, tts } = setup();
+    act(() => wake.trigger());
+    act(() => tts.finish()); // fin del saludo → listening
+    act(() => stt.emit("cuántas atrasadas", true)); // pregunta → processing
+    await waitFor(() => expect(result.current.state).toBe("speaking")); // respuesta hablando
+    expect(wake.active).toBe(true); // AHORA sí el wake escucha (barge-in armado)
+
+    act(() => wake.trigger()); // "Alfred" mientras responde = interrumpir
     expect(result.current.state).toBe("listening");
     expect(wake.active).toBe(false); // en listening manda el transcriptor
-
-    act(() => tts.finish()); // el ttsEnd del speak cortado no debe llegar
-    expect(result.current.state).toBe("listening");
   });
 
   it("al abrir el mic apaga el wake ANTES de arrancar el transcriptor (Chrome: un reconocimiento por página)", () => {

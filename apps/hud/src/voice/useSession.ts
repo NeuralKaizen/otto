@@ -26,6 +26,7 @@ interface Deps {
  */
 export function useSession(deps: Deps) {
   const [state, setState] = useState<SessionState>(initialState.phase);
+  const [bargeInArmed, setBargeInArmed] = useState<boolean>(initialState.bargeInArmed);
   const [caption, setCaption] = useState("");
   const [widgets, setWidgets] = useState<RenderedWidget[]>([]);
   const stateRef = useRef<SessionSnapshot>(initialState);
@@ -109,6 +110,7 @@ export function useSession(deps: Deps) {
       const { state: next, effects } = reduce(stateRef.current, event);
       stateRef.current = next;
       setState(next.phase);
+      setBargeInArmed(next.bargeInArmed);
       runEffects(effects);
     },
     [runEffects],
@@ -119,13 +121,12 @@ export function useSession(deps: Deps) {
   // current version.
   dispatchRef.current = dispatch;
 
-  // El wake detector escucha en idle (despertar) y en speaking (barge-in:
-  // "Alfred" interrumpe — el FSM decide según la fase). NUNCA en listening/
-  // processing: Chrome permite UN SpeechRecognition activo por página y su
-  // auto-restart mataría al transcriptor. Riesgo asumido en speaking: si una
-  // narración dijera "Alfred" por los parlantes, se auto-interrumpiría
-  // (los saludos y frases fijas no lo dicen).
-  const wakeActive = state === "idle" || state === "speaking";
+  // El wake detector escucha en idle (despertar) y en speaking SOLO cuando el
+  // barge-in está armado (respuesta), nunca durante el saludo: el wake continuo
+  // dispara varios onWake por un solo "Alfred" y encenderlo en el saludo lo
+  // cortaría solo. NUNCA en listening/processing: Chrome permite UN
+  // SpeechRecognition por página y su auto-restart mataría al transcriptor.
+  const wakeActive = state === "idle" || (state === "speaking" && bargeInArmed);
   useEffect(() => {
     if (!wakeActive) return;
     deps.wake.start(() => dispatchRef.current({ kind: "wakeDetected" }));

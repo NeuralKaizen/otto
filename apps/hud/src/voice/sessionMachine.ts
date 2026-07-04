@@ -17,12 +17,19 @@ export interface SessionSnapshot {
   lastFinalTranscript: string;
   // Rotación de saludos entre despertares.
   greetingIndex: number;
+  // ¿Se puede interrumpir a Alfred diciendo "Alfred" AHORA? Solo cuando habla
+  // una RESPUESTA — nunca durante el saludo. El wake continuo dispara varios
+  // onWake por un solo "Alfred", y si el saludo se pudiera interrumpir, esas
+  // llamadas extra lo cortarían solo. Ver useSession (el wake tampoco se
+  // enciende durante el saludo).
+  bargeInArmed: boolean;
 }
 
 export const initialState: SessionSnapshot = {
   phase: "idle",
   lastFinalTranscript: "",
   greetingIndex: 0,
+  bargeInArmed: false,
 };
 
 interface Reduction {
@@ -36,11 +43,13 @@ export function reduce(snap: SessionSnapshot, event: SessionEvent): Reduction {
       if (event.kind === "wakeDetected") {
         const greeting = WAKE_GREETINGS[snap.greetingIndex % WAKE_GREETINGS.length];
         // Saluda primero; ttsEnd (en speaking) abre el mic y arma el timer.
+        // bargeInArmed=false: el saludo no se puede cortar (ver comentario arriba).
         return {
           state: {
             phase: "speaking",
             lastFinalTranscript: "",
             greetingIndex: snap.greetingIndex + 1,
+            bargeInArmed: false,
           },
           effects: [{ kind: "speak", text: greeting }],
         };
@@ -75,8 +84,9 @@ export function reduce(snap: SessionSnapshot, event: SessionEvent): Reduction {
 
     case "processing":
       if (event.kind === "response") {
+        // Respuesta: SÍ se puede interrumpir diciendo "Alfred" (barge-in real).
         return {
-          state: { ...snap, phase: "speaking" },
+          state: { ...snap, phase: "speaking", bargeInArmed: true },
           effects: [
             { kind: "render", widgets: event.widgets },
             { kind: "speak", text: event.narration },
@@ -93,8 +103,10 @@ export function reduce(snap: SessionSnapshot, event: SessionEvent): Reduction {
       return { state: snap, effects: [] };
 
     case "speaking":
-      // wakeDetected acá = decir "Alfred" mientras Alfred habla: interrumpir.
-      if (event.kind === "bargeIn" || event.kind === "wakeDetected") {
+      // wakeDetected acá = decir "Alfred" mientras Alfred habla. Solo interrumpe
+      // si está armado (respuesta), nunca durante el saludo: así los onWake
+      // repetidos del "Alfred" inicial no cortan el saludo.
+      if (event.kind === "bargeIn" || (event.kind === "wakeDetected" && snap.bargeInArmed)) {
         return {
           state: { ...snap, phase: "listening" },
           effects: [

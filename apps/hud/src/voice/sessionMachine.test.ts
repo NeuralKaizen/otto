@@ -57,8 +57,26 @@ describe("sessionMachine", () => {
     expect(r.effects).toContainEqual({ kind: "startListening" });
   });
 
-  it('speaking + wakeDetected -> listening: decir "Alfred" mientras habla interrumpe (barge-in)', () => {
-    const r = reduce(at("speaking"), { kind: "wakeDetected" });
+  it("el saludo NO arma barge-in: idle+wakeDetected -> speaking con bargeInArmed=false", () => {
+    // el wake continuo dispara varios onWake por un solo "Alfred"; los extra
+    // NO deben cortar el saludo.
+    const r = reduce(at("idle"), { kind: "wakeDetected" });
+    expect(r.state.bargeInArmed).toBe(false);
+  });
+
+  it("saludo (bargeInArmed=false) + wakeDetected repetido -> SIGUE hablando (no se auto-corta)", () => {
+    const r = reduce(at("speaking", { bargeInArmed: false }), { kind: "wakeDetected" });
+    expect(r.state.phase).toBe("speaking");
+    expect(r.effects).toEqual([]);
+  });
+
+  it("respuesta arma barge-in: processing+response -> speaking con bargeInArmed=true", () => {
+    const r = reduce(at("processing"), { kind: "response", narration: "listo", widgets });
+    expect(r.state.bargeInArmed).toBe(true);
+  });
+
+  it('respuesta (bargeInArmed=true) + "Alfred" -> listening: interrumpe (barge-in real)', () => {
+    const r = reduce(at("speaking", { bargeInArmed: true }), { kind: "wakeDetected" });
     expect(r.state.phase).toBe("listening");
     expect(r.effects).toContainEqual({ kind: "stopSpeaking" });
     expect(r.effects).toContainEqual({ kind: "startListening" });
