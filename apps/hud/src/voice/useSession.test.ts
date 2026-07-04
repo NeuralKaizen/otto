@@ -71,6 +71,33 @@ describe("useSession", () => {
     expect(wake.active).toBe(true); // reanudado en idle
   });
 
+  it('barge-in: "Alfred" mientras habla corta el TTS y abre el mic', () => {
+    const { result, wake, tts } = setup();
+    act(() => wake.trigger());
+    expect(result.current.state).toBe("speaking");
+    expect(wake.active).toBe(true); // el wake sigue escuchando mientras Alfred habla
+
+    act(() => wake.trigger()); // "Alfred" de nuevo = interrumpir
+    expect(result.current.state).toBe("listening");
+    expect(wake.active).toBe(false); // en listening manda el transcriptor
+
+    act(() => tts.finish()); // el ttsEnd del speak cortado no debe llegar
+    expect(result.current.state).toBe("listening");
+  });
+
+  it("al abrir el mic apaga el wake ANTES de arrancar el transcriptor (Chrome: un reconocimiento por página)", () => {
+    const { wake, stt, tts } = setup();
+    const wakeStop = vi.spyOn(wake, "stop");
+    const sttStart = vi.spyOn(stt, "start");
+    act(() => wake.trigger());
+    act(() => tts.finish()); // saludo terminado → listening
+    expect(wakeStop).toHaveBeenCalled();
+    expect(sttStart).toHaveBeenCalled();
+    expect(Math.min(...wakeStop.mock.invocationCallOrder)).toBeLessThan(
+      sttStart.mock.invocationCallOrder[0],
+    );
+  });
+
   it("frase de cierre cierra la sesión", () => {
     const { result, wake, stt, tts } = setup();
     act(() => wake.trigger());

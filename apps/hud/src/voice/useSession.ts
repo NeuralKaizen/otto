@@ -44,6 +44,10 @@ export function useSession(deps: Deps) {
       for (const eff of effects) {
         switch (eff.kind) {
           case "startListening":
+            // Chrome permite UN SpeechRecognition por página: el wake (vivo en
+            // idle/speaking) debe apagarse ANTES de arrancar el transcriptor.
+            // El cleanup del efecto lo apagaría recién después del render.
+            deps.wake.stop();
             deps.stt.start(
               (partial) => {
                 setCaption(partial);
@@ -110,15 +114,18 @@ export function useSession(deps: Deps) {
   // current version.
   dispatchRef.current = dispatch;
 
-  // El wake detector solo escucha en idle: Chrome permite UN SpeechRecognition
-  // activo por página, así que si siguiera vivo durante la sesión, su
-  // auto-restart (onend → safeStart) mataría al transcriptor y la consulta
-  // nunca llegaría al agente. Se reanuda al volver a idle.
+  // El wake detector escucha en idle (despertar) y en speaking (barge-in:
+  // "Alfred" interrumpe — el FSM decide según la fase). NUNCA en listening/
+  // processing: Chrome permite UN SpeechRecognition activo por página y su
+  // auto-restart mataría al transcriptor. Riesgo asumido en speaking: si una
+  // narración dijera "Alfred" por los parlantes, se auto-interrumpiría
+  // (los saludos y frases fijas no lo dicen).
+  const wakeActive = state === "idle" || state === "speaking";
   useEffect(() => {
-    if (state !== "idle") return;
+    if (!wakeActive) return;
     deps.wake.start(() => dispatchRef.current({ kind: "wakeDetected" }));
     return () => deps.wake.stop();
-  }, [state, deps]);
+  }, [wakeActive, deps]);
 
   useEffect(
     () => () => {

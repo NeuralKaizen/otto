@@ -52,9 +52,9 @@ La key actual pasó por el chat de una sesión. Dashboard de ElevenLabs → API 
 ### 2. ~~Errores audibles + saludo al despertar~~ — HECHO (`b4d44cc`)
 `converseFailed` y `wakeDetected` ahora pasan por `speaking` (narración) y `ttsEnd` abre/reabre el mic. Nada pendiente aquí.
 
-### 3. Barge-in (interrumpir a Alfred mientras habla)
-Todo está listo menos el disparo: el evento `bargeIn` existe en el FSM (`speaking → listening` + `stopSpeaking`) y `ElevenLabsSpeaker.stop()` corta limpio, pero **nadie despacha `bargeIn`** — el checklist E2E lo promete y es imposible hoy.
-- Decisión de diseño pendiente: ¿qué lo dispara? Opciones: (a) el wake word durante `speaking` (requiere repensar la pausa del wake — hoy está apagado en sesión, y prenderlo mientras Alfred habla arriesga que se auto-escuche decir "Alfred"); (b) cualquier voz detectada por el transcriptor durante `speaking` (más natural, más falsos positivos con el audio del TTS saliendo por los parlantes). Hacer brainstorming antes de implementar.
+### 3. ~~Barge-in~~ — HECHO (2026-07-04, opción elegida por el usuario: wake word)
+Decir **"Alfred" mientras Alfred habla** lo interrumpe: el wake detector queda vivo también en `speaking` y el FSM trata `wakeDetected` en esa fase como barge-in (`stopSpeaking` + mic abierto). Para respetar la lección #1, el efecto `startListening` apaga el wake ANTES de arrancar el transcriptor (el cleanup de React llegaría tarde). Riesgo asumido y documentado: si una narración dijera "Alfred" por los parlantes se auto-interrumpiría — las frases fijas no lo dicen.
+- Falta validar E2E con mic real (los tests unitarios cubren FSM + hook con fakes).
 
 ### 4. ~~Robustez del transcriptor~~ — HECHO (2026-07-04)
 `WebSpeechTranscriber` ahora replica el patrón del wake: `onend → safeStart` mientras esté activo (guard con `this.rec`) y `console.warn` en `onerror`. Tests con un fake de `SpeechRecognition` en `webSpeech.test.ts`.

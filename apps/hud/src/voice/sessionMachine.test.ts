@@ -57,6 +57,13 @@ describe("sessionMachine", () => {
     expect(r.effects).toContainEqual({ kind: "startListening" });
   });
 
+  it('speaking + wakeDetected -> listening: decir "Alfred" mientras habla interrumpe (barge-in)', () => {
+    const r = reduce(at("speaking"), { kind: "wakeDetected" });
+    expect(r.state.phase).toBe("listening");
+    expect(r.effects).toContainEqual({ kind: "stopSpeaking" });
+    expect(r.effects).toContainEqual({ kind: "startListening" });
+  });
+
   it("speaking + ttsEnd -> listening (la sesión sigue)", () => {
     const r = reduce(at("speaking"), { kind: "ttsEnd" });
     expect(r.state.phase).toBe("listening");

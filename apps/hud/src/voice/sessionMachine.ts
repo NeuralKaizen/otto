@@ -93,7 +93,8 @@ export function reduce(snap: SessionSnapshot, event: SessionEvent): Reduction {
       return { state: snap, effects: [] };
 
     case "speaking":
-      if (event.kind === "bargeIn") {
+      // wakeDetected acá = decir "Alfred" mientras Alfred habla: interrumpir.
+      if (event.kind === "bargeIn" || event.kind === "wakeDetected") {
         return {
           state: { ...snap, phase: "listening" },
           effects: [
