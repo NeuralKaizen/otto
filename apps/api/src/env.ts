@@ -8,7 +8,8 @@ config({ path: resolve(__dirname, "../../../.env") });
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  API_PORT: parseInt(process.env.API_PORT ?? "4000", 10),
+  // Railway/Fly/Render inyectan PORT; en local usamos API_PORT.
+  API_PORT: parseInt(process.env.PORT ?? process.env.API_PORT ?? "4000", 10),
   WEB_URL: process.env.WEB_URL ?? "http://localhost:3000",
   DATABASE_URL: process.env.DATABASE_URL ?? "file:./wattson.db",
   LLM_PROVIDER: process.env.LLM_PROVIDER ?? "mock",
