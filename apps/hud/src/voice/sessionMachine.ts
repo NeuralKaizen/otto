@@ -1,7 +1,5 @@
 import type { SessionState, SessionEvent, Effect } from "./types";
 
-export const initialState: SessionState = "idle";
-
 // Español neutro (nada de voseo). El saludo suena ANTES de abrir el mic:
 // si Alfred hablara con el mic abierto, se transcribiría a sí mismo.
 export const WAKE_GREETINGS = [
@@ -12,63 +10,73 @@ export const WAKE_GREETINGS = [
 
 export const CONVERSE_ERROR_NARRATION = "Perdón, no pude procesar eso. ¿Puedes repetirlo?";
 
-// Rotación de saludos (mismo patrón module-level que lastFinalTranscript).
-let greetingIndex = 0;
+// Todo el estado de la máquina vive acá (reduce es pura: nada a nivel módulo).
+export interface SessionSnapshot {
+  phase: SessionState;
+  // El último transcript final visto en la sesión actual (lo necesita speechEnd).
+  lastFinalTranscript: string;
+  // Rotación de saludos entre despertares.
+  greetingIndex: number;
+}
+
+export const initialState: SessionSnapshot = {
+  phase: "idle",
+  lastFinalTranscript: "",
+  greetingIndex: 0,
+};
 
 interface Reduction {
-  state: SessionState;
+  state: SessionSnapshot;
   effects: Effect[];
 }
 
-// El último transcript final visto en la sesión actual (lo necesita speechEnd).
-// TODO(plan-2): lift into a state struct for purity + multi-instance safety.
-let lastFinalTranscript = "";
-
-export function reduce(state: SessionState, event: SessionEvent): Reduction {
-  switch (state) {
+export function reduce(snap: SessionSnapshot, event: SessionEvent): Reduction {
+  switch (snap.phase) {
     case "idle":
       if (event.kind === "wakeDetected") {
-        lastFinalTranscript = "";
-        const greeting = WAKE_GREETINGS[greetingIndex % WAKE_GREETINGS.length];
-        greetingIndex += 1;
+        const greeting = WAKE_GREETINGS[snap.greetingIndex % WAKE_GREETINGS.length];
         // Saluda primero; ttsEnd (en speaking) abre el mic y arma el timer.
         return {
-          state: "speaking",
+          state: {
+            phase: "speaking",
+            lastFinalTranscript: "",
+            greetingIndex: snap.greetingIndex + 1,
+          },
           effects: [{ kind: "speak", text: greeting }],
         };
       }
-      return { state, effects: [] }; // otros eventos sin sesión abierta: no-op
+      return { state: snap, effects: [] }; // otros eventos sin sesión abierta: no-op
 
     case "listening":
       if (event.kind === "closingPhrase" || event.kind === "timeout") {
-        lastFinalTranscript = "";
         return {
-          state: "idle",
+          state: { ...snap, phase: "idle", lastFinalTranscript: "" },
           effects: [{ kind: "stopListening" }, { kind: "disarmSilenceTimer" }],
         };
       }
       if (event.kind === "transcript" && event.final) {
-        lastFinalTranscript = event.text;
-        return { state, effects: [{ kind: "armSilenceTimer" }] };
-      }
-      if (event.kind === "speechEnd" && lastFinalTranscript) {
-        const text = lastFinalTranscript;
-        lastFinalTranscript = ""; // consumir: evita re-enviar la consulta anterior
         return {
-          state: "processing",
+          state: { ...snap, lastFinalTranscript: event.text },
+          effects: [{ kind: "armSilenceTimer" }],
+        };
+      }
+      if (event.kind === "speechEnd" && snap.lastFinalTranscript) {
+        return {
+          // consumir el transcript: evita re-enviar la consulta anterior
+          state: { ...snap, phase: "processing", lastFinalTranscript: "" },
           effects: [
             { kind: "stopListening" },
             { kind: "disarmSilenceTimer" },
-            { kind: "callConverse", text },
+            { kind: "callConverse", text: snap.lastFinalTranscript },
           ],
         };
       }
-      return { state, effects: [] };
+      return { state: snap, effects: [] };
 
     case "processing":
       if (event.kind === "response") {
         return {
-          state: "speaking",
+          state: { ...snap, phase: "speaking" },
           effects: [
             { kind: "render", widgets: event.widgets },
             { kind: "speak", text: event.narration },
@@ -78,16 +86,16 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
       if (event.kind === "converseFailed") {
         // Nunca fallar mudo: dice el error y ttsEnd lo devuelve a listening.
         return {
-          state: "speaking",
+          state: { ...snap, phase: "speaking" },
           effects: [{ kind: "speak", text: CONVERSE_ERROR_NARRATION }],
         };
       }
-      return { state, effects: [] };
+      return { state: snap, effects: [] };
 
     case "speaking":
       if (event.kind === "bargeIn") {
         return {
-          state: "listening",
+          state: { ...snap, phase: "listening" },
           effects: [
             { kind: "stopSpeaking" },
             { kind: "disarmSilenceTimer" },
@@ -98,7 +106,7 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
       }
       if (event.kind === "ttsEnd") {
         return {
-          state: "listening",
+          state: { ...snap, phase: "listening" },
           effects: [
             { kind: "disarmSilenceTimer" },
             { kind: "startListening" },
@@ -106,6 +114,6 @@ export function reduce(state: SessionState, event: SessionEvent): Reduction {
           ],
         };
       }
-      return { state, effects: [] };
+      return { state: snap, effects: [] };
   }
 }

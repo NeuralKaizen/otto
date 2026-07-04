@@ -87,6 +87,8 @@ export class ElevenLabsSpeaker implements Speaker {
     // idempotente: seguro aunque no haya nada sonando
     if (this.session) this.session.cancelled = true;
     this.cleanup();
+    // Incondicional a propósito: no hay flag que diga si la sesión degradó,
+    // y el stop() del fallback es inofensivo cuando no está hablando.
     this.fallback.stop();
   }
 

@@ -56,18 +56,14 @@ La key actual pasó por el chat de una sesión. Dashboard de ElevenLabs → API 
 Todo está listo menos el disparo: el evento `bargeIn` existe en el FSM (`speaking → listening` + `stopSpeaking`) y `ElevenLabsSpeaker.stop()` corta limpio, pero **nadie despacha `bargeIn`** — el checklist E2E lo promete y es imposible hoy.
 - Decisión de diseño pendiente: ¿qué lo dispara? Opciones: (a) el wake word durante `speaking` (requiere repensar la pausa del wake — hoy está apagado en sesión, y prenderlo mientras Alfred habla arriesga que se auto-escuche decir "Alfred"); (b) cualquier voz detectada por el transcriptor durante `speaking` (más natural, más falsos positivos con el audio del TTS saliendo por los parlantes). Hacer brainstorming antes de implementar.
 
-### 4. Robustez del transcriptor (bug latente conocido)
-`WebSpeechTranscriber` no tiene auto-restart en `onend` ni handler de `onerror` (el wake sí tiene ambos). Chrome corta el reconocimiento tras unos segundos de silencio: si el usuario tarda en formular la pregunta después de "Alfred", el transcriptor muere en silencio y la sesión queda escuchando la nada hasta el timeout de 35s.
-- Fix: replicar el patrón del wake (`onend → safeStart` mientras esté activo, guard con `this.rec`) + `console.warn` en `onerror`. Tests con los fakes.
+### 4. ~~Robustez del transcriptor~~ — HECHO (2026-07-04)
+`WebSpeechTranscriber` ahora replica el patrón del wake: `onend → safeStart` mientras esté activo (guard con `this.rec`) y `console.warn` en `onerror`. Tests con un fake de `SpeechRecognition` en `webSpeech.test.ts`.
 
-### 5. Minors diferidos de reviews (deuda chica, hacer en una pasada)
-- Test de `speak()` re-entrante sin `stop()` externo (`elevenLabsSpeaker.test.ts`).
-- Test del camino `audio.onerror` (hoy solo está testeado `play()` rechazado).
-- Comentario en `ElevenLabsSpeaker.stop()` explicando el `fallback.stop()` incondicional.
-- `sessionMachine.ts` tiene un TODO real: `lastFinalTranscript` es estado a nivel módulo (rompería con multi-instancia) — subirlo a un struct de estado.
+### 5. ~~Minors diferidos de reviews~~ — HECHO (2026-07-04)
+Tests de `speak()` re-entrante y de `audio.onerror`, comentario en `ElevenLabsSpeaker.stop()`, y `reduce` ahora es pura: el estado (`phase`, `lastFinalTranscript`, `greetingIndex`) vive en el struct `SessionSnapshot` — nada a nivel módulo (hay test de pureza con dos máquinas).
 
-### 6. CORS multi-origen (cuando se vuelva a usar apps/web)
-`apps/api/src/server.ts` acepta un solo origen. Cambiar a array (`[WEB_URL, HUD_URL]` o regex localhost en dev) para que HUD (:5173) y web (:3000) convivan.
+### 6. ~~CORS multi-origen~~ — HECHO (2026-07-04)
+`corsOrigins()` en `apps/api/src/cors.ts` (con tests node:test): en dev permite cualquier `http://localhost:*` (HUD :5173 y web :3000 conviven); en producción solo `WEB_URL` + orígenes de Tauri.
 
 ### 7. Deploy (el objetivo es grabar una demo — coordinar con el usuario)
 - **Backend**: necesita Node persistente (Fastify + WebSocket + SQLite) → NO va en Vercel. Decidir hosting (Railway/Fly/VPS) y qué pasa con SQLite (¿migrar a Postgres?). Nada de esto está empezado.

@@ -84,6 +84,10 @@ export class WebSpeechTranscriber implements Transcriber {
       if (interim) onPartial([finals, interim].filter(Boolean).join(" "));
       else if (finals) onFinal(finals);
     };
+    this.rec.onerror = (e: any) => console.warn("[transcriber] error:", e?.error, e?.message ?? "");
+    // Chrome corta el reconocimiento tras unos segundos de silencio;
+    // mientras la sesión siga activa (this.rec), volver a escuchar.
+    this.rec.onend = () => { if (this.rec) safeStart(this.rec); };
     safeStart(this.rec);
   }
   stop() { const r = this.rec; this.rec = undefined; r?.stop(); }

@@ -5,6 +5,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import { registerSkillRegistry } from "@wattson/agent-core";
 import { getSkill, listSkills } from "@wattson/skills";
 import { env } from "./env.js";
+import { corsOrigins } from "./cors.js";
 import { registerWebSocket } from "./ws/agentSocket.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { chatRoutes } from "./routes/chat.routes.js";
@@ -19,8 +20,7 @@ import { composioRoutes } from "./routes/composio.routes.js";
 const app = Fastify({ logger: true });
 
 await app.register(fastifyCors, {
-  // Allow web dev server + Tauri webview (dev: http://localhost:3000, prod bundle: tauri://localhost)
-  origin: [env.WEB_URL, "tauri://localhost", "https://tauri.localhost"],
+  origin: corsOrigins({ webUrl: env.WEB_URL, nodeEnv: env.NODE_ENV }),
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
 

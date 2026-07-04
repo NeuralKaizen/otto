@@ -140,6 +140,38 @@ describe("ElevenLabsSpeaker", () => {
     expect(ctx.fallback.spoken).toEqual([]);
   });
 
+  it("si el audio falla al reproducir (onerror), degrada al fallback", async () => {
+    const ctx = setup();
+    const onEnd = vi.fn();
+    ctx.speaker.speak("hola", onEnd);
+    await flush();
+    ctx.audio!.onerror!();
+    expect(ctx.fallback.spoken).toEqual(["hola"]);
+    expect(onEnd).not.toHaveBeenCalled();
+    ctx.fallback.lastOnEnd!();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("speak() re-entrante sin stop() externo: cancela la sesión anterior y su onEnd no llega", async () => {
+    const ctx = setup();
+    const firstEnd = vi.fn();
+    ctx.speaker.speak("uno", firstEnd);
+    await flush();
+    const firstAudio = ctx.audio!;
+    const firstOnEnded = firstAudio.onended;
+
+    const secondEnd = vi.fn();
+    ctx.speaker.speak("dos", secondEnd);
+    await flush();
+    expect(firstAudio.paused).toBe(true);
+    firstOnEnded?.(); // si el handler viejo quedara vivo, sería un onEnd fantasma
+    expect(firstEnd).not.toHaveBeenCalled();
+
+    ctx.audio!.onended!();
+    expect(secondEnd).toHaveBeenCalledTimes(1);
+    expect(ctx.fallback.spoken).toEqual([]);
+  });
+
   it("si el fallback lanza sincrónicamente, onEnd igual se dispara una sola vez", async () => {
     const bad = vi.fn().mockRejectedValue(new Error("network down"));
     const throwingFallback: Speaker = {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { reduce, initialState } from "./sessionMachine";
+import { reduce, initialState, type SessionSnapshot } from "./sessionMachine";
 import type {
   SessionState,
   SessionEvent,
@@ -25,10 +25,10 @@ interface Deps {
  * si no, el wake detector se re-suscribe en cada render.
  */
 export function useSession(deps: Deps) {
-  const [state, setState] = useState<SessionState>(initialState);
+  const [state, setState] = useState<SessionState>(initialState.phase);
   const [caption, setCaption] = useState("");
   const [widgets, setWidgets] = useState<RenderedWidget[]>([]);
-  const stateRef = useRef<SessionState>(initialState);
+  const stateRef = useRef<SessionSnapshot>(initialState);
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Store dispatch in a ref so runEffects can call it without a circular
@@ -99,7 +99,7 @@ export function useSession(deps: Deps) {
     (event: SessionEvent) => {
       const { state: next, effects } = reduce(stateRef.current, event);
       stateRef.current = next;
-      setState(next);
+      setState(next.phase);
       runEffects(effects);
     },
     [runEffects],
