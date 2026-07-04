@@ -13,7 +13,7 @@ const MOCK_RESPONSES: Record<string, string> = {
 
   system_status: `Estado del sistema:\n✅ API: operativa\n✅ Base de datos: conectada\n🤖 LLM: mock (configura LLM_PROVIDER=openai para usar IA real)\n🔇 Voice: mock\n⏱️ Timestamp: ${new Date().toISOString()}`,
 
-  general_chat: `Hola, soy Wattson OS en modo mock. Estoy corriendo localmente sin un LLM real activo.\n\nPuedo ayudarte con:\n\n- 📝 **LinkedIn**: "Dame ideas para un post sobre la reunión con X"\n- 📅 **Calendario**: "¿Qué tengo mañana en mi agenda?"\n- 📧 **Email**: "Crea un borrador para Daniel agradeciendo la reunión"\n- 🧠 **Memoria**: "¿Qué recuerdas sobre el proyecto Houston?"\n- ⚙️ **Sistema**: "Estado del sistema"\n\nConfigura \`LLM_PROVIDER=openai\` + \`OPENAI_API_KEY\` en \`.env\` para usar IA real.`,
+  general_chat: `Hola, soy Alfred en modo mock. Estoy corriendo localmente sin un LLM real activo.\n\nPuedo ayudarte con:\n\n- 📝 **LinkedIn**: "Dame ideas para un post sobre la reunión con X"\n- 📅 **Calendario**: "¿Qué tengo mañana en mi agenda?"\n- 📧 **Email**: "Crea un borrador para Daniel agradeciendo la reunión"\n- 🧠 **Memoria**: "¿Qué recuerdas sobre el proyecto Houston?"\n- ⚙️ **Sistema**: "Estado del sistema"\n\nConfigura \`LLM_PROVIDER=openai\` + \`OPENAI_API_KEY\` en \`.env\` para usar IA real.`,
 
   unknown: `No estoy seguro de entender lo que necesitas. Puedes pedirme ayuda con LinkedIn posts, calendario, borradores de email, búsqueda en memoria o simplemente chatear. ¿En qué te ayudo?`,
 };
