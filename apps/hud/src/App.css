@@ -191,19 +191,43 @@
   pointer-events: none;
 }
 
-/* ── Captions: pulled out of flex flow, sit at bottom center ─────── */
+/* ── Captions: lower-third, centrado abajo, sentado sobre un scrim ─────── */
 .hud-captions {
   position: absolute;
-  bottom: 110px;
-  left: 0;
-  right: 0;
+  bottom: 104px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 84vw);
+  min-height: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
+  padding: 20px 32px 22px;
   text-align: center;
-  min-height: 64px;
   pointer-events: none;
+}
+
+/* Scrim suave detrás del subtítulo: lo integra al HUD (no "metido de gratis").
+ * Radial anclado abajo, difuminado, solo visible cuando hay texto. */
+.hud-captions::before {
+  content: "";
+  position: absolute;
+  inset: -6% -10% -30%;
+  background: radial-gradient(
+    62% 130% at 50% 78%,
+    rgba(3, 7, 12, 0.72) 0%,
+    rgba(3, 7, 12, 0.42) 42%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  z-index: -1;
+  pointer-events: none;
+}
+.hud[data-state="listening"] .hud-captions::before,
+.hud[data-state="speaking"] .hud-captions::before {
+  opacity: 1;
 }
 
 /* ── Per-card arc anchor ─────────────────────────────────────────── */
@@ -586,40 +610,101 @@
   font-style: italic;
 }
 
-/* subtítulos: lo que Wattson dice, en serif de cine */
+/* Subtítulos — lower-third de transmisión.
+ * UNA sola tipografía (Newsreader derecha) en TODAS las fases: el tamaño y la
+ * fuente no cambian entre "escuchando" y "hablando" — así no se siente
+ * inconsistente. Quién habla lo dice la etiqueta, no la fuente. */
+
+/* Etiqueta de locutor: mono, tracking amplio, registro del HUD. Su texto y
+ * color los define data-state (abajo). Un punto la ancla visualmente. */
+.caption-speaker {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  text-indent: 0.32em; /* compensa el tracking del último glifo, centra óptico */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+  animation: caption-label-in 0.5s ease both;
+}
+.caption-speaker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+.caption-speaker::after {
+  content: "···";
+  letter-spacing: 0.2em;
+}
+.hud[data-state="listening"] .caption-speaker {
+  color: rgba(120, 208, 255, 0.9);
+}
+.hud[data-state="listening"] .caption-speaker::after {
+  content: "TÚ";
+}
+.hud[data-state="speaking"] .caption-speaker {
+  color: rgba(233, 214, 178, 0.92); /* cálido: la voz de Alfred */
+}
+.hud[data-state="speaking"] .caption-speaker::after {
+  content: "ALFRED";
+}
 
 .caption-text {
   font-family: var(--serif);
-  font-style: italic;
-  font-weight: 300;
-  font-size: 26px;
-  line-height: 1.4;
-  color: rgba(228, 238, 250, 0.94);
-  max-width: 640px;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.8);
-  animation: caption-in 0.5s ease both;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 1.42;
+  letter-spacing: 0.005em;
+  color: rgba(233, 242, 252, 0.97);
+  max-width: 620px;
+  /* sombra nítida para legibilidad + halo tenue que lo asienta (no lo lava) */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 22px rgba(0, 0, 0, 0.55);
+  text-wrap: balance;
+}
+
+/* Al HABLAR (narración de una sola vez): entrada suave hacia arriba. */
+.hud[data-state="speaking"] .caption-text {
+  animation: caption-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Al ESCUCHAR (texto en vivo que cambia): sin animación por cada palabra
+ * (parpadearía); un caret parpadeante señala el dictado en curso. */
+.hud[data-state="listening"] .caption-text {
+  color: rgba(214, 232, 248, 0.9);
+}
+.hud[data-state="listening"] .caption-text::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 4px;
+  vertical-align: -0.15em;
+  background: rgba(120, 208, 255, 0.9);
+  animation: caption-caret 1.05s steps(1) infinite;
 }
 
 @keyframes caption-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(7px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes caption-label-in {
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-/* Mientras ESCUCHA, el subtítulo es tu dictado: registro técnico del HUD
- * (mono, tracking amplio), no la serif de cine — esa es la voz de Alfred. */
-.hud[data-state="listening"] .caption-text {
-  font-family: var(--mono);
-  font-style: normal;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(148, 216, 255, 0.85);
-  animation: none;
+@keyframes caption-caret {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
-.hud[data-state="listening"] .caption-text::before {
-  content: "▸ ";
-  opacity: 0.6;
+@media (prefers-reduced-motion: reduce) {
+  .caption-text, .caption-speaker { animation: none; }
+  .hud[data-state="listening"] .caption-text::after { animation: none; }
 }
 
 /* --- responsive + accesibilidad ------------------------------------ */
@@ -627,8 +712,8 @@
 @media (max-width: 900px) {
   .chrome-top { padding: 20px 22px; }
   .meta-hint, .brand-sub { display: none; }
-  .hud-captions { bottom: 84px; }
-  .caption-text { font-size: 20px; }
+  .hud-captions { bottom: 84px; width: min(680px, 90vw); padding: 16px 22px 18px; }
+  .caption-text { font-size: 19px; }
   /* Scale down card placement on small screens by reducing the vmin radius */
   .widget.kpi-card    { min-width: 110px; max-width: 140px; }
   .widget.table-widget { min-width: 180px; max-width: 240px; }
