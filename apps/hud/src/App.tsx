@@ -11,6 +11,7 @@ import { Captions } from "./hud/Captions";
 import { Canvas } from "./hud/Canvas";
 import { OrbitalRings } from "./hud/OrbitalRings";
 import { HudTelemetry } from "./hud/HudTelemetry";
+import { SHOWCASE_WIDGETS, SHOWCASE_CAPTION } from "./hud/showcaseBoard";
 import "./App.css";
 
 const ORDER: SessionState[] = ["idle", "listening", "processing", "speaking"];
@@ -21,22 +22,7 @@ function demoContent(state: SessionState): { caption: string; widgets: RenderedW
     case "listening":
       return { caption: "¿cómo viene el equipo hoy?", widgets: [] };
     case "speaking":
-      return {
-        caption: "Tenés doce tareas activas y tres atrasadas. Persona B concentra la mayor carga.",
-        widgets: [
-          { type: "kpi_card", title: "Activas", data: { value: 12 } },
-          { type: "kpi_card", title: "Atrasadas", data: { value: 3 } },
-          {
-            type: "table",
-            title: "Por persona",
-            data: [
-              { persona: "Persona A", activas: 4, atrasadas: 0 },
-              { persona: "Persona B", activas: 5, atrasadas: 2 },
-              { persona: "Persona C", activas: 3, atrasadas: 1 },
-            ],
-          },
-        ],
-      };
+      return { caption: SHOWCASE_CAPTION, widgets: SHOWCASE_WIDGETS };
     default:
       return { caption: "", widgets: [] };
   }
@@ -77,17 +63,28 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // ?still=1 → fija todo en su estado final (sin animaciones): útil para
+  // capturar un frame estático del tablero ya desplegado.
+  const params = new URLSearchParams(window.location.search);
+  const still = params.has("still");
+  // ?showcase=1 → cuando llegan métricas por voz, muestra el tablero curado
+  // (mismos números que narra el backend con SOCIAL_SHOWCASE). Para el video.
+  const showcase = params.has("showcase");
+
   const state = demo ?? session.state;
-  const { caption, widgets } = demo
+  const base = demo
     ? demoContent(demo)
     : { caption: session.caption, widgets: session.widgets };
+  const caption = base.caption;
+  const widgets =
+    showcase && !demo && base.widgets.length > 0 ? SHOWCASE_WIDGETS : base.widgets;
 
   // Amplitud real del mic cuando la sesión está abierta (también en demo,
   // así "se siente vivo" hablando frente al panel).
   const getMicLevel = useMicLevel(state === "listening" || state === "speaking");
 
   return (
-    <div className="hud" data-state={state}>
+    <div className={still ? "hud still" : "hud"} data-state={state}>
       <WattsonScene state={state} getAmplitude={getMicLevel} />
       <OrbitalRings />
       <div className="hud-vignette" aria-hidden="true" />

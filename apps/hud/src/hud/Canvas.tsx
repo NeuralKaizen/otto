@@ -4,110 +4,73 @@ import { widgetFor } from "./widgets/registry";
 import { BannerParticles, type BurstTarget } from "./BannerParticles";
 import { BannerLinks, type LinkTarget } from "./BannerLinks";
 
-// ─── Arc placement ──────────────────────────────────────────────────────────
+// ─── Rail placement ─────────────────────────────────────────────────────────
 //
-// Core center sits at (50 vw, 50 vh).
-// Outer HUD ring ≈ 0.41 × min(vw,vh) = 41 vmin radius.
-// Cards anchor just OUTSIDE that ring at CARD_RADIUS vmin so the core stays clear.
+// El núcleo vive en (50vw, 50vh). En vez de desperdigar tarjetas en ángulos
+// alrededor del anillo (se veía random y contra los bordes), las organizamos
+// en DOS RIELES verticales que flanquean el núcleo — como una cabina:
+//   · Riel DERECHO: los KPIs, apilados y alineados.
+//   · Riel IZQUIERDO: gráficas + tabla, apilados y alineados.
+// El núcleo queda despejado en el centro; los haces conectan cada tarjeta.
 //
-// KPI cards:  arc along the right side of the ring (30° … 80° measured clockwise
-//             from the top of the circle, i.e. "northeast/east").
-// Table:      anchored to the left side (210°) — wider footprint, separate sector.
-//
-// Each slot receives CSS custom properties:
-//   --tx / --ty  : translation from the core center (vmin)
-//   --dx / --dy  : unit vector pointing FROM center TO the slot (for the reveal animation)
-//
-// The slot is then placed with:
-//   left: calc(50% + var(--tx) * 1vmin)
-//   top:  calc(50% + var(--ty) * 1vmin)
-//   transform: translate(-50%, -50%)   ← centers the card on that anchor point
+// Cada slot recibe CSS custom properties:
+//   --tx / --ty  : desplazamiento desde el centro del núcleo (vmin)
+//   --dx / --dy  : vector unitario centro → slot (para la animación de entrada)
+// y se coloca con: left/top: calc(50% + var(--tx|--ty) * 1vmin); translate(-50%,-50%).
 
-const CARD_RADIUS   = 47;   // vmin — clear of the outer ring (~41vmin)
-const TABLE_RADIUS  = 45;   // vmin — same zone, opposite side
-
-// Angular span for KPI chips (degrees, clockwise from top = 0° = "north")
-// We place them on the right arc: 25° … 70° → east-northeast
-const KPI_START_DEG = 25;
-const KPI_END_DEG   = 70;
-
-// Sector de las gráficas: arco oeste, espejo de los KPIs
-const CHART_RADIUS    = 47;   // vmin
-const CHART_START_DEG = 250;
-const CHART_END_DEG   = 305;
-
-// Table anchor angle (sur-suroeste, despejado de las gráficas)
-const TABLE_DEG     = 205;
+const RAIL_X = 54;      // vmin — distancia horizontal del centro a cada riel
+// Span vertical COMPARTIDO por ambos rieles: con igual cantidad de items por
+// lado, las filas quedan a la misma altura → composición simétrica, espejada
+// sobre el núcleo. ~62vmin ≈ diámetro del anillo, así los widgets lo enmarcan.
+const RAIL_SPAN = 62;
 
 // Cadencia narrativa: cada widget entra un beat después del anterior, en el
-// orden en que el agente los emitió. Una gráfica reserva más tiempo que un
-// KPI para que se le vea crecer las barras antes del siguiente beat.
+// orden en que el agente los emitió. Una gráfica reserva más tiempo que un KPI
+// para que se le vea crecer las barras antes del siguiente beat.
 const BEAT_MS: Record<string, number> = {
   kpi_card: 380,
   metric_chart: 650,
 };
 const DEFAULT_BEAT_MS = 500;
 
-function degToRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
 interface SlotStyle {
-  tx: number;   // vmin offset X from center (positive = right)
-  ty: number;   // vmin offset Y from center (positive = down)
-  dx: number;   // unit vector X (for reveal direction)
-  dy: number;   // unit vector Y
+  tx: number; // vmin offset X desde el centro (positivo = derecha)
+  ty: number; // vmin offset Y desde el centro (positivo = abajo)
+  dx: number; // vector unitario X (dirección del reveal)
+  dy: number; // vector unitario Y
 }
 
-function arcSlotStyle(index: number, total: number, startDeg: number, endDeg: number, radius: number): SlotStyle {
-  // Distribute over the arc, or just use its middle if only one card
-  const t = total <= 1 ? 0.5 : index / (total - 1);
-  // CSS angle convention: 0° = top, 90° = right (clockwise)
-  // Math convention: angle from positive-X axis, counter-clockwise
-  const rad = degToRad(startDeg + t * (endDeg - startDeg));
-  // tx/len = (R·sin(rad))/R = sin(rad); ty/len = (-R·cos(rad))/R = -cos(rad)
-  // (ty negative because Y goes down in screen coords)
-  return {
-    tx: radius * Math.sin(rad),
-    ty: -radius * Math.cos(rad),
-    dx: Math.sin(rad),
-    dy: -Math.cos(rad),
-  };
+function railSlot(x: number, ty: number): SlotStyle {
+  const len = Math.hypot(x, ty) || 1;
+  return { tx: x, ty, dx: x / len, dy: ty / len };
 }
 
-function kpiSlotStyle(index: number, total: number): SlotStyle {
-  return arcSlotStyle(index, total, KPI_START_DEG, KPI_END_DEG, CARD_RADIUS);
-}
-
-function chartSlotStyle(index: number, total: number): SlotStyle {
-  return arcSlotStyle(index, total, CHART_START_DEG, CHART_END_DEG, CHART_RADIUS);
-}
-
-function tableSlotStyle(): SlotStyle {
-  const rad = degToRad(TABLE_DEG);
-  const tx = TABLE_RADIUS * Math.sin(rad);
-  const ty = -TABLE_RADIUS * Math.cos(rad);
-  // tx/len = (R·sin(rad))/R = sin(rad); ty/len = (-R·cos(rad))/R = -cos(rad)
-  return { tx, ty, dx: Math.sin(rad), dy: -Math.cos(rad) };
+// n items centrados verticalmente sobre un span dado (devuelve los ty en vmin).
+function stackYs(n: number, span: number): number[] {
+  if (n <= 0) return [];
+  if (n === 1) return [0];
+  const step = span / (n - 1);
+  return Array.from({ length: n }, (_, i) => -span / 2 + i * step);
 }
 
 export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
-  const kpiCount = widgets.filter((w) => w.type === "kpi_card").length;
-  const chartCount = widgets.filter((w) => w.type === "metric_chart").length;
+  // Repartir por riel: KPIs a la derecha; gráficas y tabla a la izquierda.
+  const kpiIdxs: number[] = [];
+  const leftIdxs: number[] = [];
+  widgets.forEach((w, i) => (w.type === "kpi_card" ? kpiIdxs : leftIdxs).push(i));
 
-  // Coreografía narrativa: los widgets entran en el orden en que el agente los
-  // emitió, cada uno un beat después del anterior; el sector depende del tipo.
+  const kpiYs = stackYs(kpiIdxs.length, RAIL_SPAN);
+  const leftYs = stackYs(leftIdxs.length, RAIL_SPAN);
+
+  const slotByIndex: SlotStyle[] = new Array(widgets.length);
+  kpiIdxs.forEach((wi, k) => (slotByIndex[wi] = railSlot(RAIL_X, kpiYs[k])));
+  leftIdxs.forEach((wi, k) => (slotByIndex[wi] = railSlot(-RAIL_X, leftYs[k])));
+
+  // Coreografía narrativa: entran en el orden de emisión, un beat cada uno.
   let elapsed = 0;
-  let kpiSeen = 0;
-  let chartSeen = 0;
   const slottedWidgets: Array<{ widget: RenderedWidget; slot: SlotStyle; delay: number }> =
-    widgets.map((widget) => {
-      const slot =
-        widget.type === "kpi_card"
-          ? kpiSlotStyle(kpiSeen++, kpiCount)
-          : widget.type === "metric_chart"
-          ? chartSlotStyle(chartSeen++, chartCount)
-          : tableSlotStyle();
+    widgets.map((widget, i) => {
+      const slot = slotByIndex[i];
       const delay = elapsed;
       elapsed += BEAT_MS[widget.type] ?? DEFAULT_BEAT_MS;
       return { widget, slot, delay };

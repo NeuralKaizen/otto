@@ -97,6 +97,15 @@
   transition: border-color 0.6s ease;
 }
 
+/* Modo estático (?still): fija toda animación en su fotograma final. */
+.hud.still *,
+.hud.still *::before,
+.hud.still *::after {
+  animation-delay: 0ms !important;
+  animation-duration: 1ms !important;
+  transition: none !important;
+}
+
 .corner-tl { top: 16px; left: 16px; border-right: 0; border-bottom: 0; }
 .corner-tr { top: 16px; right: 16px; border-left: 0; border-bottom: 0; }
 .corner-bl { bottom: 16px; left: 16px; border-right: 0; border-top: 0; }
@@ -547,20 +556,22 @@
 .widget {
   position: relative;
   min-width: 180px;
-  padding: 18px 22px 20px;
-  border-radius: 10px;
+  padding: 15px 20px 17px;
+  /* Marco de instrumento, no card web: esquinas casi rectas. */
+  border-radius: 2px;
   background:
-    linear-gradient(160deg, rgba(14, 24, 38, 0.78), rgba(6, 11, 19, 0.85));
-  border: 1px solid rgba(150, 185, 225, 0.16);
-  backdrop-filter: blur(14px);
+    linear-gradient(160deg, rgba(12, 22, 34, 0.62), rgba(5, 10, 17, 0.72));
+  /* borde tenue en los lados; las esquinas las marcan los brackets (::after) */
+  border: 1px solid rgba(150, 185, 225, 0.10);
+  backdrop-filter: blur(12px);
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(200, 225, 255, 0.08);
-  overflow: hidden;
+    0 16px 44px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(200, 225, 255, 0.05);
   /* Materialización holográfica, escalonada junto al recorrido del slot. */
   animation: widget-materialize 0.85s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
 }
 
+/* Línea de acento superior (se traza al entrar). */
 .widget::before {
   content: "";
   position: absolute;
@@ -570,9 +581,31 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0.7;
-  /* La línea de acento se traza al entrar la tarjeta. */
   transform-origin: center;
   animation: line-sweep 0.6s ease-out var(--delay, 0ms) both;
+}
+
+/* Brackets de esquina: cuatro L's dibujadas con gradientes — el mismo idioma
+ * que las esquinas del chrome. Convierte el "rectángulo" en una retícula HUD. */
+.widget::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  --bl: 13px; /* largo del brazo */
+  --bt: 1.5px; /* grosor */
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / var(--bl) var(--bt),
+    linear-gradient(var(--accent), var(--accent)) 0 0 / var(--bt) var(--bl),
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / var(--bl) var(--bt),
+    linear-gradient(var(--accent), var(--accent)) 100% 0 / var(--bt) var(--bl),
+    linear-gradient(var(--accent), var(--accent)) 0 100% / var(--bl) var(--bt),
+    linear-gradient(var(--accent), var(--accent)) 0 100% / var(--bt) var(--bl),
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / var(--bl) var(--bt),
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / var(--bt) var(--bl);
+  background-repeat: no-repeat;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 4px var(--accent-soft));
 }
 
 .widget-title {
@@ -585,7 +618,7 @@
 
 .kpi-value {
   font-family: var(--mono);
-  font-size: 46px;
+  font-size: 42px;
   font-weight: 600;
   line-height: 1;
   color: var(--accent);
@@ -593,6 +626,47 @@
   font-variant-numeric: tabular-nums;
   transition: color 0.6s ease;
 }
+
+/* Pie del KPI: sparkline de tendencia + delta, alineados. Aparece tras el dato. */
+.kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  animation: mc-fade-in 0.5s ease calc(var(--delay, 0ms) + 700ms) both;
+}
+
+.kpi-spark {
+  width: 66px;
+  height: 20px;
+  overflow: visible;
+}
+.kpi-spark-line {
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 4px var(--accent-soft));
+}
+.kpi-spark-dot {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 5px var(--accent));
+}
+
+.kpi-delta {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.kpi-delta[data-dir="up"] { color: #46e0a0; }
+.kpi-delta[data-dir="up"]::before { content: "▲ "; font-size: 8px; }
+.kpi-delta[data-dir="down"] { color: #ff6b8a; }
+.kpi-delta[data-dir="down"]::before { content: "▼ "; font-size: 8px; }
 
 /* El texto hereda el fringe holográfico mientras se descifra. `--delay` se
  * hereda del .hud-slot. Sin fill-mode → vuelve a su text-shadow de reposo. */
