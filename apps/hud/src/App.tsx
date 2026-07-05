@@ -22,18 +22,28 @@ function demoContent(state: SessionState): { caption: string; widgets: RenderedW
       return { caption: "¿cómo viene el equipo hoy?", widgets: [] };
     case "speaking":
       return {
-        caption: "Tenés doce tareas activas y tres atrasadas. Persona B concentra la mayor carga.",
+        caption: "Tus métricas de Instagram, Luciano: 34.4 mil seguidores y 4.2% de engagement.",
         widgets: [
-          { type: "kpi_card", title: "Activas", data: { value: 12 } },
-          { type: "kpi_card", title: "Atrasadas", data: { value: 3 } },
+          { type: "kpi_card", title: "Seguidores", data: { value: 34435 } },
+          { type: "kpi_card", title: "Engagement", data: { value: "4.2%" } },
           {
-            type: "table",
-            title: "Por persona",
-            data: [
-              { persona: "Persona A", activas: 4, atrasadas: 0 },
-              { persona: "Persona B", activas: 5, atrasadas: 2 },
-              { persona: "Persona C", activas: 3, atrasadas: 1 },
-            ],
+            type: "metric_chart",
+            title: "Top contenido",
+            data: {
+              subtitle: "@lucianomusellaa · instagram",
+              points: [
+                { name: "Reel gym", value: 12800 },
+                { name: "Carrusel", value: 9400 },
+                { name: "Colab", value: 7100 },
+                { name: "Story set", value: 5200 },
+                { name: "Live Q&A", value: 3600 },
+              ],
+            },
+          },
+          {
+            type: "metric_chart",
+            title: "Likes 30d",
+            data: { subtitle: "instagram", unit: "likes", points: [{ name: "IG", value: 148200 }] },
           },
         ],
       };
