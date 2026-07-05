@@ -1,0 +1,959 @@
+/* ===================================================================
+   Panel general de Wattson — "observatorio de energía"
+   Una escena de partículas full-screen + chrome HUD fino + paneles glass.
+   El acento cromático lo dicta el estado de la sesión (data-state).
+   =================================================================== */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 30%, #071019 0%, #040810 48%, #02050a 100%);
+  --accent: #28C8B4;
+  --accent-soft: rgba(40, 200, 180, 0.16);
+  --accent-line: rgba(40, 200, 180, 0.35);
+  transition: --accent 0.6s;
+}
+
+.hud[data-state="listening"] {
+  --accent: #50E696;
+  --accent-soft: rgba(80, 230, 150, 0.16);
+  --accent-line: rgba(80, 230, 150, 0.4);
+}
+
+.hud[data-state="processing"] {
+  --accent: #8C78FF;
+  --accent-soft: rgba(140, 120, 255, 0.14);
+  --accent-line: rgba(140, 120, 255, 0.4);
+}
+
+.hud[data-state="speaking"] {
+  --accent: #46E0A0;
+  --accent-soft: rgba(70, 224, 160, 0.16);
+  --accent-line: rgba(70, 224, 160, 0.4);
+}
+
+.wattson-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- atmósfera: viñeta + grano ----------------------------------- */
+
+.hud-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(115% 100% at 50% 42%, transparent 55%, rgba(1, 3, 6, 0.75) 100%);
+  z-index: 2;
+}
+
+/* en reposo el chrome se retira un poco; la escena manda */
+.hud-chrome {
+  transition: opacity 0.9s ease;
+}
+
+.hud[data-state="idle"] .hud-chrome {
+  opacity: 0.72;
+}
+
+.hud-grain {
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 9s steps(8) infinite;
+}
+
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -2%); }
+  75% { transform: translate(-2%, -3%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* --- chrome: esquinas, barra superior, readout, espectro ----------- */
+
+.hud-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  color: var(--ink);
+}
+
+.frame-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--accent-line);
+  transition: border-color 0.6s ease;
+}
+
+.corner-tl { top: 16px; left: 16px; border-right: 0; border-bottom: 0; }
+.corner-tr { top: 16px; right: 16px; border-left: 0; border-bottom: 0; }
+.corner-bl { bottom: 16px; left: 16px; border-right: 0; border-top: 0; }
+.corner-br { bottom: 16px; right: 16px; border-left: 0; border-top: 0; }
+
+.chrome-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 48px;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  animation: chrome-in 1.1s 0.2s ease both;
+}
+
+.chrome-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.brand-mark {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.45em;
+  color: var(--accent);
+  text-shadow: 0 0 18px var(--accent-soft);
+  transition: color 0.6s ease;
+}
+
+.brand-sub {
+  color: var(--ink-dim);
+  font-size: 9px;
+}
+
+.chrome-meta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--ink-dim);
+}
+
+.chrome-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+@keyframes chrome-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- escenario: widgets + subtítulos ------------------------------- */
+
+/*
+ * .hud-stage holds BOTH the radial widget canvas (full-area) and the captions
+ * (bottom-centered). We make it fill the HUD area and use a sub-element for
+ * captions positioning so that App.tsx does not need to change.
+ */
+.hud-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+/*
+ * .hud-canvas is a full-area overlay.
+ * Each .hud-slot is absolute, positioned via CSS vars injected from Canvas.tsx:
+ *   --tx / --ty  vmin offset from the core center (50%, 50%)
+ *   --dx / --dy  unit vector pointing outward (for the reveal animation)
+ */
+.hud-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * Ráfaga de partículas núcleo → banner. Canvas transparente que cubre el
+ * viewport, primer hijo de .hud-canvas → pinta SOBRE la escena WebGL y DEBAJO
+ * de las tarjetas (que vienen después en el DOM). No captura eventos.
+ */
+.banner-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ── Captions: lower-third, centrado abajo, sentado sobre un scrim ─────── */
+.hud-captions {
+  position: absolute;
+  bottom: 104px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, 84vw);
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 20px 32px 22px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Scrim suave detrás del subtítulo: lo integra al HUD (no "metido de gratis").
+ * Radial anclado abajo, difuminado, solo visible cuando hay texto. */
+.hud-captions::before {
+  content: "";
+  position: absolute;
+  inset: -6% -10% -30%;
+  background: radial-gradient(
+    62% 130% at 50% 78%,
+    rgba(3, 7, 12, 0.72) 0%,
+    rgba(3, 7, 12, 0.42) 42%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  z-index: -1;
+  pointer-events: none;
+}
+.hud[data-state="listening"] .hud-captions::before,
+.hud[data-state="speaking"] .hud-captions::before {
+  opacity: 1;
+}
+
+/* ── Per-card arc anchor ─────────────────────────────────────────── */
+.hud-slot {
+  position: absolute;
+  /*
+   * Anchor to core center (50% h, 50% v) then offset by the computed radius
+   * vector.  calc() multiplies the unitless CSS var by 1vmin to get the actual
+   * screen distance.  translate(-50%,-50%) centers the card on its anchor point.
+   */
+  left: calc(50% + var(--tx, 0) * 1vmin);
+  top:  calc(50% + var(--ty, 0) * 1vmin);
+  transform: translate(-50%, -50%);
+
+  pointer-events: auto;
+
+  /*
+   * Reveal: cards fly outward from the core along their own radius vector.
+   * The keyframe uses --dx/--dy (unit vectors) to build the start translation.
+   * We start at the core center (translate = 0,0 relative to anchor) and move
+   * to the final resting position (translate = -50%,-50% centering).
+   */
+  /* easeOutBack: sobrepasa el punto de descanso y se asienta — entrada con energía */
+  animation: slot-emerge 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0ms) both;
+}
+
+/*
+ * slot-emerge: fade + blur + translate FROM the core center TOWARD the arc spot.
+ * The card starts deep near the core (negative offset of its own anchor distance)
+ * and travels outward, overshooting its spot before settling (easeOutBack).
+ */
+@keyframes slot-emerge {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    /*
+     * Pull back toward core: move the card ~36vmin inward along its radius
+     * vector (opposite direction of --dx/--dy).
+     * translate(-50%,-50%) is the centering offset, always present.
+     */
+    transform: translate(
+      calc(-50% + var(--dx, 0) * -36vmin),
+      calc(-50% + var(--dy, 0) * -36vmin)
+    ) scale(0.78);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/*
+ * widget-materialize: la tarjeta "bootea" como un holograma —
+ * flicker de proyector (opacity en pasos irregulares), split RGB
+ * (drop-shadow cyan/magenta desfasado que converge a 0), spikes de brillo,
+ * y micro-jitter (translate sub-pixel que se apaga). Termina en el estado de
+ * reposo (border/box-shadow frío). Comparte el --delay del slot.
+ */
+@keyframes widget-materialize {
+  0% {
+    opacity: 0;
+    transform: translate(-2px, 1px);
+    filter:
+      drop-shadow(-3px 0 rgba(255, 0, 90, 0.6))
+      drop-shadow(3px 0 rgba(0, 200, 255, 0.6))
+      brightness(1.8);
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent-soft),
+      0 0 44px var(--accent-soft),
+      0 18px 50px rgba(0, 0, 0, 0.45);
+  }
+  8%  { opacity: 0.65; transform: translate(2px, -1px); }
+  12% { opacity: 0.18; }
+  20% {
+    opacity: 1;
+    transform: translate(-1px, 1px);
+    filter:
+      drop-shadow(-2px 0 rgba(255, 0, 90, 0.5))
+      drop-shadow(2px 0 rgba(0, 200, 255, 0.5))
+      brightness(1.35);
+  }
+  28% { opacity: 0.5; }
+  34% { opacity: 1; transform: translate(1px, 0); }
+  46% {
+    opacity: 0.82;
+    transform: translate(-1px, 0);
+    filter:
+      drop-shadow(-1px 0 rgba(255, 0, 90, 0.35))
+      drop-shadow(1px 0 rgba(0, 200, 255, 0.35))
+      brightness(1.15);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(0.5px, 0);
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent-soft),
+      0 0 30px var(--accent-soft),
+      0 18px 50px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+    filter:
+      drop-shadow(0 0 0 transparent)
+      drop-shadow(0 0 0 transparent)
+      brightness(1);
+    border-color: rgba(150, 185, 225, 0.16);
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(200, 225, 255, 0.08);
+  }
+}
+
+/* text-fringe: aberración cromática sobre el texto al desencriptarse; decae a
+ * la sombra de reposo propia del elemento (sin fill-mode: no pisa el reposo). */
+@keyframes text-fringe {
+  0% {
+    text-shadow:
+      -2px 0 rgba(255, 0, 90, 0.85),
+      2px 0 rgba(0, 200, 255, 0.85);
+  }
+  60% {
+    text-shadow:
+      -1px 0 rgba(255, 0, 90, 0.4),
+      1px 0 rgba(0, 200, 255, 0.4);
+  }
+  100% {
+    text-shadow:
+      0 0 0 rgba(255, 0, 90, 0),
+      0 0 0 rgba(0, 200, 255, 0);
+  }
+}
+
+/* line-sweep: la línea de acento superior se dibuja desde el centro hacia afuera */
+@keyframes line-sweep {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ── KPI card tweaks for the arc context ─────────────────────────── */
+.widget.kpi-card {
+  min-width: 140px;
+  max-width: 170px;
+}
+
+/* ── Table as telemetry readout ──────────────────────────────────── */
+
+/*
+ * The table widget sits on the left arc of the ring.
+ * We restyle it as a fine-lined telemetry readout:
+ * monospaced numbers, thin rules, compact — like a systems monitor.
+ */
+.widget.table-widget {
+  min-width: 240px;
+  max-width: 300px;
+}
+
+.table-widget table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.table-widget th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 8px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding: 3px 20px 6px 0;
+  border-bottom: 1px solid var(--accent-line);
+}
+
+.table-widget td {
+  padding: 6px 20px 6px 0;
+  border-bottom: 1px solid rgba(150, 185, 225, 0.06);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* Numeric-looking cells get accent color — first column stays dim */
+.table-widget td:not(:first-child) {
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-soft);
+  font-size: 12px;
+}
+
+.table-widget tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Telemetry readout: accent top-line on the widget itself */
+.table-widget.widget::before {
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0.9;
+}
+
+/* ── Metric chart: barras holográficas de Zernio ─────────────────── */
+
+.widget.metric-chart {
+  min-width: 250px;
+  max-width: 310px;
+}
+
+.metric-chart .mc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.metric-chart .mc-head .widget-title {
+  margin-bottom: 2px;
+}
+
+.metric-chart .mc-sub {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.metric-chart .mc-total {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 18px var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.metric-chart .mc-unit {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-left: 5px;
+}
+
+.metric-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.metric-chart .mc-grid {
+  stroke: rgba(150, 185, 225, 0.09);
+  stroke-width: 1;
+}
+
+.metric-chart .mc-base {
+  stroke: var(--accent-line);
+  stroke-width: 1;
+}
+
+/* Cada barra sube desde la base, una tras otra (animation-delay inline). */
+.metric-chart .mc-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  filter: drop-shadow(0 0 7px var(--accent-soft));
+  animation: mc-bar-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.metric-chart .mc-bar-fill {
+  fill: var(--accent);
+  fill-opacity: 0.24;
+  stroke: var(--accent);
+  stroke-opacity: 0.35;
+  stroke-width: 0.5;
+}
+
+.metric-chart .mc-bar-cap {
+  fill: var(--accent);
+}
+
+@keyframes mc-bar-grow {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+.metric-chart .mc-val {
+  font-family: var(--mono);
+  font-size: 9px;
+  fill: var(--accent);
+  font-variant-numeric: tabular-nums;
+  animation: mc-fade-in 0.45s ease both;
+}
+
+.metric-chart .mc-label {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  fill: rgba(150, 185, 225, 0.55);
+  animation: mc-fade-in 0.45s ease both;
+}
+
+@keyframes mc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* paneles glass con filo luminoso */
+
+.widget {
+  position: relative;
+  min-width: 180px;
+  padding: 18px 22px 20px;
+  border-radius: 10px;
+  background:
+    linear-gradient(160deg, rgba(14, 24, 38, 0.78), rgba(6, 11, 19, 0.85));
+  border: 1px solid rgba(150, 185, 225, 0.16);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(200, 225, 255, 0.08);
+  overflow: hidden;
+  /* Materialización holográfica, escalonada junto al recorrido del slot. */
+  animation: widget-materialize 0.85s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
+}
+
+.widget::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.7;
+  /* La línea de acento se traza al entrar la tarjeta. */
+  transform-origin: center;
+  animation: line-sweep 0.6s ease-out var(--delay, 0ms) both;
+}
+
+.widget-title {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+
+.kpi-value {
+  font-family: var(--mono);
+  font-size: 46px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 24px var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.6s ease;
+}
+
+/* El texto hereda el fringe holográfico mientras se descifra. `--delay` se
+ * hereda del .hud-slot. Sin fill-mode → vuelve a su text-shadow de reposo. */
+.widget-title,
+.kpi-value,
+.table-widget th,
+.table-widget td {
+  animation: text-fringe 0.7s ease-out var(--delay, 0ms);
+}
+
+.widget-empty,
+.widget-unknown {
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-style: italic;
+}
+
+/* Subtítulos — lower-third de transmisión.
+ * UNA sola tipografía (Newsreader derecha) en TODAS las fases: el tamaño y la
+ * fuente no cambian entre "escuchando" y "hablando" — así no se siente
+ * inconsistente. Quién habla lo dice la etiqueta, no la fuente. */
+
+/* Etiqueta de locutor: mono, tracking amplio, registro del HUD. Su texto y
+ * color los define data-state (abajo). Un punto la ancla visualmente. */
+.caption-speaker {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  text-indent: 0.32em; /* compensa el tracking del último glifo, centra óptico */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+  animation: caption-label-in 0.5s ease both;
+}
+.caption-speaker::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+.caption-speaker::after {
+  content: "···";
+  letter-spacing: 0.2em;
+}
+.hud[data-state="listening"] .caption-speaker {
+  color: rgba(120, 208, 255, 0.9);
+}
+.hud[data-state="listening"] .caption-speaker::after {
+  content: "TÚ";
+}
+.hud[data-state="speaking"] .caption-speaker {
+  color: rgba(233, 214, 178, 0.92); /* cálido: la voz de Alfred */
+}
+.hud[data-state="speaking"] .caption-speaker::after {
+  content: "ALFRED";
+}
+
+.caption-text {
+  font-family: var(--serif);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 1.42;
+  letter-spacing: 0.005em;
+  color: rgba(233, 242, 252, 0.97);
+  max-width: 620px;
+  /* sombra nítida para legibilidad + halo tenue que lo asienta (no lo lava) */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 22px rgba(0, 0, 0, 0.55);
+  text-wrap: balance;
+}
+
+/* Al HABLAR (narración de una sola vez): entrada suave hacia arriba. */
+.hud[data-state="speaking"] .caption-text {
+  animation: caption-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Al ESCUCHAR (texto en vivo que cambia): sin animación por cada palabra
+ * (parpadearía); un caret parpadeante señala el dictado en curso. */
+.hud[data-state="listening"] .caption-text {
+  color: rgba(214, 232, 248, 0.9);
+}
+.hud[data-state="listening"] .caption-text::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 4px;
+  vertical-align: -0.15em;
+  background: rgba(120, 208, 255, 0.9);
+  animation: caption-caret 1.05s steps(1) infinite;
+}
+
+@keyframes caption-in {
+  from { opacity: 0; transform: translateY(7px); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes caption-label-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes caption-caret {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caption-text, .caption-speaker { animation: none; }
+  .hud[data-state="listening"] .caption-text::after { animation: none; }
+}
+
+/* --- responsive + accesibilidad ------------------------------------ */
+
+@media (max-width: 900px) {
+  .chrome-top { padding: 20px 22px; }
+  .meta-hint, .brand-sub { display: none; }
+  .hud-captions { bottom: 84px; width: min(680px, 90vw); padding: 16px 22px 18px; }
+  .caption-text { font-size: 19px; }
+  /* Scale down card placement on small screens by reducing the vmin radius */
+  .widget.kpi-card    { min-width: 110px; max-width: 140px; }
+  .widget.table-widget { min-width: 180px; max-width: 240px; }
+  .widget.metric-chart { min-width: 200px; max-width: 250px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-grain,
+  .state-dot {
+    animation: none !important;
+  }
+  /* Collapse the emerge animation to instant (no motion) */
+  .hud-slot {
+    animation: none !important;
+    /* Ensure the card renders at its arc position without any translate offset */
+    transform: translate(-50%, -50%) !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  /* Sin destello de aterrizaje ni trazado de línea: estado de reposo directo */
+  .widget,
+  .widget::before {
+    animation: none !important;
+  }
+  .widget::before {
+    transform: scaleX(1) !important;
+  }
+  .widget-title,
+  .kpi-value,
+  .table-widget th,
+  .table-widget td {
+    animation: none !important;
+  }
+  .metric-chart .mc-bar,
+  .metric-chart .mc-val,
+  .metric-chart .mc-label {
+    animation: none !important;
+  }
+}
+
+/* ===================================================================
+   Cromo Jarvis: anillos orbitales · telemetría · haces núcleo→banner
+   =================================================================== */
+
+/* ── Sistema de anillos orbitales ──────────────────────────────────── */
+.orbital-rings {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66vmin;
+  height: 66vmin;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 4; /* sobre la atmósfera, debajo de los banners (z-8) */
+}
+.orbital-rings svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* origen de rotación al centro del viewBox para todo lo que gira */
+.oring,
+.tick-ring,
+.orbit-grp {
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.oring {
+  fill: none;
+  stroke: var(--accent);
+  transition: stroke 0.6s ease;
+}
+.oring-a {
+  stroke-opacity: 0.22;
+  stroke-width: 1;
+  stroke-dasharray: 2 6;
+  animation: orbit-spin 60s linear infinite;
+}
+.oring-b {
+  stroke-opacity: 0.1;
+  stroke-width: 1;
+}
+.oring-c {
+  stroke-opacity: 0.18;
+  stroke-width: 1;
+  stroke-dasharray: 14 10;
+  animation: orbit-spin 90s linear infinite reverse;
+}
+
+.tick-ring {
+  animation: orbit-spin 140s linear infinite;
+}
+.otick {
+  stroke: var(--accent);
+  stroke-opacity: 0.26;
+  stroke-width: 1;
+  transition: stroke 0.6s ease;
+}
+.otick-long {
+  stroke-opacity: 0.5;
+}
+
+.orbit-path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.16;
+  stroke-width: 1;
+  transition: stroke 0.6s ease;
+}
+.orbit-1 {
+  animation: orbit-spin 16s linear infinite;
+}
+.orbit-2 {
+  animation: orbit-spin 24s linear infinite reverse;
+}
+.orbit-node {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent));
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Readouts de telemetría en esquinas ────────────────────────────── */
+.hud-telemetry {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.telemetry-block {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+}
+.tele-tr {
+  top: 76px;
+  right: 30px;
+  text-align: right;
+  align-items: flex-end;
+}
+.tele-bl {
+  bottom: 30px;
+  left: 30px;
+}
+.tele-br {
+  bottom: 30px;
+  right: 30px;
+  text-align: right;
+  align-items: flex-end;
+}
+.tele-key {
+  color: var(--accent);
+  opacity: 0.85;
+  transition: color 0.6s ease;
+}
+.tele-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: tele-blink 2s ease-in-out infinite;
+}
+@keyframes tele-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+.tele-scan {
+  width: 74px;
+  height: 1px;
+  margin-top: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+  animation: tele-scanmove 2.6s ease-in-out infinite;
+}
+@keyframes tele-scanmove {
+  0%, 100% { transform: translateX(-12px); opacity: 0.2; }
+  50% { transform: translateX(12px); opacity: 0.6; }
+}
+
+/* ── Haces de conexión núcleo → banner ─────────────────────────────── */
+.banner-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.blink {
+  opacity: 0;
+  animation: blink-in 0.5s ease var(--delay, 0ms) forwards;
+}
+.blink-line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-opacity: 0.45;
+  stroke-dasharray: 3 7;
+  animation: blink-dash 0.9s linear infinite;
+  transition: stroke 0.6s ease;
+}
+.blink-tip {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent));
+}
+@keyframes blink-in {
+  to { opacity: 0.6; }
+}
+@keyframes blink-dash {
+  to { stroke-dashoffset: -10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oring-a,
+  .oring-c,
+  .tick-ring,
+  .orbit-1,
+  .orbit-2,
+  .tele-dot,
+  .tele-scan,
+  .blink-line {
+    animation: none !important;
+  }
+  .blink {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}

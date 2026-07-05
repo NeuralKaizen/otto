@@ -1,30 +1,48 @@
-# Otto — Prototipo Voice HUD
+# Wattson
 
-Prototipo voz-reactivo (wake word "Otto" → sesión → Claude → HUD con datos mock).
-Spec: `docs/superpowers/specs/2026-06-09-otto-voice-hud-design.md`.
-Plan: `docs/superpowers/plans/2026-06-09-otto-voice-hud-prototype.md`.
+Wattson is a Jarvis-style AI agent. It has an engine and a face: **`apps/api`** (a Fastify
+agent backend, plus the shared **`packages/*`** libraries it depends on — `agent-core`,
+`memory`, `shared`, `skills`, `voice`) does the reasoning, tool calls, and streaming; **`apps/hud`**
+is the interface — our voice-reactive holographic HUD, and the thing that gets deployed to
+Vercel. **`apps/web`** is a reference React client (used as the wiring blueprint for chat +
+WebSocket event consumption) and **`apps/desktop`** is a Tauri shell wrapping the web client
+for a native desktop build.
 
-## Backend (FastAPI)
+This is a pnpm + Turborepo monorepo.
 
-```bash
-cd backend && python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...        # cerebro Claude
-uvicorn app.main:app --reload       # http://localhost:8000
-pytest                              # tests
-```
-
-## Frontend (Vite + React)
+## Local dev
 
 ```bash
-cd frontend && npm install
-npm run dev                         # http://localhost:5173 (usar Chrome)
-npm test                            # tests (Vitest)
+pnpm install
+
+# Backend (Fastify, http://localhost:4000)
+cp .env.example .env   # defaults use mock providers — no secrets needed to boot
+pnpm dev:api
+
+# HUD (Vite + React 19)
+pnpm --filter @wattson/hud dev
+
+# DB (Prisma, via @wattson/memory)
+pnpm db:generate
 ```
 
-## Notas
+Other useful scripts: `pnpm dev:web` (reference web client), `pnpm dev:desktop` (Tauri shell +
+api + web together), `pnpm typecheck` / `pnpm lint` (Turborepo-orchestrated across all
+packages), `pnpm db:migrate`, `pnpm db:studio`.
 
-- Datos **mock evidentes** (cartel "datos de demostración"). La capa de query real
-  (Postgres) se enchufa en `backend/app/queries.py` sin tocar la UI.
-- Voz fase 1: APIs nativas del navegador. Swap a Porcupine/Deepgram/Cartesia = plan siguiente.
-- Decí **"Otto"** para abrir sesión, hablá, y decí **"listo"** para cerrar.
+## Deployment
+
+The backend (`apps/api`) does **not** deploy to Vercel — it's a persistent Fastify process
+with a WebSocket server and a local SQLite database (via Prisma), which doesn't fit Vercel's
+serverless model. It needs to run somewhere long-lived (a VM, container, etc.).
+
+Vercel only builds and deploys **`apps/hud`** (see `vercel.json`). The HUD talks to the
+backend over HTTP/WebSocket using `VITE_API_URL` / `VITE_WS_URL` — see
+`apps/hud/.env.example` — so it can point at wherever the backend is actually running.
+
+## Provenance
+
+The agent backend (`apps/api`, `apps/web`, `apps/desktop`, `packages/*`) was imported from
+[`AceleraTalent/Jarvis_mvp`](https://github.com/AceleraTalent/Jarvis_mvp) at commit `ddc6adb`
+and rebranded from Jarvis to Wattson. See `docs/backend/README-import.md` for details. The HUD
+(`apps/hud`) is original work from this repo.
