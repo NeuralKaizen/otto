@@ -19,8 +19,10 @@ import { BannerLinks, type LinkTarget } from "./BannerLinks";
 // y se coloca con: left/top: calc(50% + var(--tx|--ty) * 1vmin); translate(-50%,-50%).
 
 const RAIL_X = 54;      // vmin — distancia horizontal del centro a cada riel
-const KPI_SPAN = 66;    // vmin — alto total ocupado por el riel de KPIs
-const LEFT_SPAN = 58;   // vmin — alto total ocupado por el riel izquierdo
+// Span vertical COMPARTIDO por ambos rieles: con igual cantidad de items por
+// lado, las filas quedan a la misma altura → composición simétrica, espejada
+// sobre el núcleo. ~62vmin ≈ diámetro del anillo, así los widgets lo enmarcan.
+const RAIL_SPAN = 62;
 
 // Cadencia narrativa: cada widget entra un beat después del anterior, en el
 // orden en que el agente los emitió. Una gráfica reserva más tiempo que un KPI
@@ -57,8 +59,8 @@ export function Canvas({ widgets }: { widgets: RenderedWidget[] }) {
   const leftIdxs: number[] = [];
   widgets.forEach((w, i) => (w.type === "kpi_card" ? kpiIdxs : leftIdxs).push(i));
 
-  const kpiYs = stackYs(kpiIdxs.length, KPI_SPAN);
-  const leftYs = stackYs(leftIdxs.length, LEFT_SPAN);
+  const kpiYs = stackYs(kpiIdxs.length, RAIL_SPAN);
+  const leftYs = stackYs(leftIdxs.length, RAIL_SPAN);
 
   const slotByIndex: SlotStyle[] = new Array(widgets.length);
   kpiIdxs.forEach((wi, k) => (slotByIndex[wi] = railSlot(RAIL_X, kpiYs[k])));
