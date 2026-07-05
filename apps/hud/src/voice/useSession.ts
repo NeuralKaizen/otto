@@ -72,6 +72,9 @@ export function useSession(deps: Deps) {
             deps.tts.stop();
             break;
           case "speak":
+            // El subtítulo muestra lo que Alfred DICE mientras habla (saludo,
+            // narración, error), no la última frase dictada por el usuario.
+            setCaption(eff.text);
             deps.tts.speak(eff.text, () => dispatchRef.current({ kind: "ttsEnd" }));
             break;
           case "render":

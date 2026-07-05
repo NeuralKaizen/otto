@@ -11,6 +11,7 @@ import { Captions } from "./hud/Captions";
 import { Canvas } from "./hud/Canvas";
 import { OrbitalRings } from "./hud/OrbitalRings";
 import { HudTelemetry } from "./hud/HudTelemetry";
+import { SHOWCASE_WIDGETS, SHOWCASE_CAPTION } from "./hud/showcaseBoard";
 import "./App.css";
 
 const ORDER: SessionState[] = ["idle", "listening", "processing", "speaking"];
@@ -21,56 +22,7 @@ function demoContent(state: SessionState): { caption: string; widgets: RenderedW
     case "listening":
       return { caption: "¿cómo viene el equipo hoy?", widgets: [] };
     case "speaking":
-      return {
-        caption: "Tus métricas de Instagram, Luciano: 34.4 mil seguidores, engagement del 4.2% y en alza.",
-        widgets: [
-          { type: "kpi_card", title: "Seguidores", data: { value: "34.4K", delta: "+3.1%", spark: [30, 31, 31, 32, 33, 33, 34] } },
-          { type: "kpi_card", title: "Engagement", data: { value: "4.2%", delta: "+0.4pt", spark: [3.6, 3.8, 3.7, 4.0, 4.1, 4.0, 4.2] } },
-          { type: "kpi_card", title: "Alcance 7d", data: { value: "128K", delta: "+12%", spark: [90, 96, 101, 110, 116, 121, 128] } },
-          { type: "kpi_card", title: "Guardados", data: { value: "2.1K", delta: "-2%", spark: [2.3, 2.2, 2.2, 2.1, 2.0, 2.1, 2.1] } },
-          {
-            type: "metric_chart",
-            title: "Top contenido",
-            data: {
-              subtitle: "@lucianomusellaa · instagram",
-              unit: "likes",
-              points: [
-                { name: "Reel gym", value: 12800 },
-                { name: "Carrusel", value: 9400 },
-                { name: "Colab", value: 7100 },
-                { name: "Story set", value: 5200 },
-                { name: "Live Q&A", value: 3600 },
-              ],
-            },
-          },
-          {
-            type: "metric_chart",
-            title: "Alcance · 7d",
-            data: {
-              subtitle: "impresiones / día",
-              unit: "imp",
-              points: [
-                { name: "Lu", value: 90000 },
-                { name: "Ma", value: 96000 },
-                { name: "Mi", value: 101000 },
-                { name: "Ju", value: 110000 },
-                { name: "Vi", value: 116000 },
-                { name: "Sá", value: 121000 },
-                { name: "Do", value: 128000 },
-              ],
-            },
-          },
-          {
-            type: "table",
-            title: "Por plataforma",
-            data: [
-              { red: "Instagram", segs: "34.4K", eng: "4.2%" },
-              { red: "TikTok", segs: "18.9K", eng: "6.1%" },
-              { red: "YouTube", segs: "7.2K", eng: "3.4%" },
-            ],
-          },
-        ],
-      };
+      return { caption: SHOWCASE_CAPTION, widgets: SHOWCASE_WIDGETS };
     default:
       return { caption: "", widgets: [] };
   }
@@ -113,12 +65,19 @@ export default function App() {
 
   // ?still=1 → fija todo en su estado final (sin animaciones): útil para
   // capturar un frame estático del tablero ya desplegado.
-  const still = new URLSearchParams(window.location.search).has("still");
+  const params = new URLSearchParams(window.location.search);
+  const still = params.has("still");
+  // ?showcase=1 → cuando llegan métricas por voz, muestra el tablero curado
+  // (mismos números que narra el backend con SOCIAL_SHOWCASE). Para el video.
+  const showcase = params.has("showcase");
 
   const state = demo ?? session.state;
-  const { caption, widgets } = demo
+  const base = demo
     ? demoContent(demo)
     : { caption: session.caption, widgets: session.widgets };
+  const caption = base.caption;
+  const widgets =
+    showcase && !demo && base.widgets.length > 0 ? SHOWCASE_WIDGETS : base.widgets;
 
   // Amplitud real del mic cuando la sesión está abierta (también en demo,
   // así "se siente vivo" hablando frente al panel).
