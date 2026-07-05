@@ -18,10 +18,13 @@ test("en dev NO permite orígenes remotos arbitrarios", () => {
   assert.equal(allows(origins, "https://evil.example.com"), false);
 });
 
-test("en producción solo permite WEB_URL y los orígenes de Tauri", () => {
+test("en producción permite WEB_URL, Tauri y los dominios de Vercel del proyecto", () => {
   const origins = corsOrigins({ webUrl: "https://hud.wattson.app", nodeEnv: "production" });
   assert.equal(allows(origins, "https://hud.wattson.app"), true);
   assert.equal(allows(origins, "tauri://localhost"), true);
   assert.equal(allows(origins, "https://tauri.localhost"), true);
+  assert.equal(allows(origins, "https://otto-pearl.vercel.app"), true);
+  assert.equal(allows(origins, "https://otto-3v968eh24-neuralkaizens-projects.vercel.app"), true);
   assert.equal(allows(origins, "http://localhost:3000"), false);
+  assert.equal(allows(origins, "https://evil.vercel.app"), false);
 });
