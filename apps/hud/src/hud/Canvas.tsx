@@ -24,20 +24,21 @@ import { BannerLinks, type LinkTarget } from "./BannerLinks";
 //   transform: translate(-50%, -50%)   ← centers the card on that anchor point
 
 const CARD_RADIUS   = 47;   // vmin — clear of the outer ring (~41vmin)
-const TABLE_RADIUS  = 45;   // vmin — same zone, opposite side
+const TABLE_RADIUS  = 53;   // vmin — más afuera, despejado del subtítulo central
 
 // Angular span for KPI chips (degrees, clockwise from top = 0° = "north")
-// We place them on the right arc: 25° … 70° → east-northeast
-const KPI_START_DEG = 25;
-const KPI_END_DEG   = 70;
+// Arco derecho amplio (24° … 116°) para que hasta 4 lecturas no se encimen
+// ni se corten contra el borde superior.
+const KPI_START_DEG = 24;
+const KPI_END_DEG   = 116;
 
 // Sector de las gráficas: arco oeste, espejo de los KPIs
 const CHART_RADIUS    = 47;   // vmin
-const CHART_START_DEG = 250;
-const CHART_END_DEG   = 305;
+const CHART_START_DEG = 252;
+const CHART_END_DEG   = 300;
 
-// Table anchor angle (sur-suroeste, despejado de las gráficas)
-const TABLE_DEG     = 205;
+// Tabla: abajo-izquierda, despejada del subtítulo (centro) y de las gráficas.
+const TABLE_DEG     = 218;
 
 // Cadencia narrativa: cada widget entra un beat después del anterior, en el
 // orden en que el agente los emitió. Una gráfica reserva más tiempo que un
