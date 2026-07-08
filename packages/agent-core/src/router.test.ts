@@ -8,7 +8,7 @@ test("Caso E: detecta prompts sociales sin romper otras intenciones", () => {
   assert.equal(routeIntent("dame el engagement de tiktok"), "social_metrics");
   assert.equal(routeIntent("revisa analytics de redes"), "social_metrics");
 
-  assert.equal(routeIntent("crea un correo para Daniel"), "gmail_draft");
+  assert.equal(routeIntent("crea un correo para Daniel"), "external_tool_query");
   assert.equal(routeIntent("crea una tarea en notion para mañana"), "notion_workspace");
 });
 
@@ -28,16 +28,16 @@ test("Fase 11 B: Gmail draft con keyword 'gmail' va a external_tool_query", () =
   assert.equal(routeIntent("envía un correo en Gmail a María"), "external_tool_query");
 });
 
-test("Fase 11 C: Gmail genérico sin keyword 'gmail' sigue en gmail_draft (legacy)", () => {
-  assert.equal(routeIntent("crea un correo para Daniel"), "gmail_draft");
-  assert.equal(routeIntent("redacta un borrador para el cliente"), "gmail_draft");
-  assert.equal(routeIntent("escribe un email de agradecimiento"), "gmail_draft");
+test("Fase 11 C: Gmail genérico sin keyword 'gmail' también va a external_tool_query (Composio real)", () => {
+  assert.equal(routeIntent("crea un correo para Daniel"), "external_tool_query");
+  assert.equal(routeIntent("redacta un borrador para el cliente"), "external_tool_query");
+  assert.equal(routeIntent("escribe un email de agradecimiento"), "external_tool_query");
 });
 
-test("Fase 11 D: Calendar read va a calendar_lookup", () => {
-  assert.equal(routeIntent("qué tengo mañana en mi calendario"), "calendar_lookup");
-  assert.equal(routeIntent("revisa mi agenda de esta semana"), "calendar_lookup");
-  assert.equal(routeIntent("eventos de hoy"), "calendar_lookup");
+test("Fase 14 A: Calendar read va a external_tool_query (Composio real, retira calendar_lookup mock)", () => {
+  assert.equal(routeIntent("qué tengo mañana en mi calendario"), "external_tool_query");
+  assert.equal(routeIntent("revisa mi agenda de esta semana"), "external_tool_query");
+  assert.equal(routeIntent("eventos de hoy"), "external_tool_query");
 });
 
 test("Fase 11 D2: Calendar write va a external_tool_query (Composio)", () => {

@@ -32,9 +32,9 @@ export function routeIntent(message: string): Intent {
     return "meeting_to_linkedin_post";
   }
 
-  // Gmail via Composio gateway: any prompt mentioning "gmail" explicitly, or
-  // clear read-only Gmail phrases that don't need the legacy mock draft flow.
-  // Must come BEFORE the generic gmail_draft check below.
+  // Gmail via Composio gateway: any prompt mentioning "gmail" explicitly, plus
+  // read-only Gmail phrases and generic email/draft phrasing — all Gmail
+  // reads and drafts go through the real Composio gateway (no mock flow).
   if (
     m.includes("gmail") ||
     m.includes("busca mis correos") ||
@@ -45,13 +45,7 @@ export function routeIntent(message: string): Intent {
     m.includes("revisa mi bandeja") ||
     m.includes("correos sobre") ||
     m.includes("emails sobre") ||
-    m.includes("inbox de")
-  ) {
-    return "external_tool_query";
-  }
-
-  // Generic Gmail draft (no explicit "gmail" keyword, no Composio phrase) — legacy mock flow.
-  if (
+    m.includes("inbox de") ||
     m.includes("correo") ||
     m.includes("email") ||
     m.includes("borrador") ||
@@ -59,10 +53,11 @@ export function routeIntent(message: string): Intent {
     m.includes("escribe un email") ||
     m.includes("crea un correo")
   ) {
-    return "gmail_draft";
+    return "external_tool_query";
   }
 
-  // Calendar write actions → Composio (must come BEFORE calendar_lookup read check).
+  // Calendar actions (write and read) → Composio real. Reads (calendario,
+  // agenda, eventos, reuniones, "qué tengo") share the same intent as writes.
   if (
     m.includes("crea un evento") ||
     m.includes("crea una reunión") ||
@@ -71,12 +66,7 @@ export function routeIntent(message: string): Intent {
     m.includes("agenda una reunión") ||
     m.includes("agenda una reunion") ||
     m.includes("agrega un evento") ||
-    /\b(crea|agrega)\s+(un|una)\s+(evento|cita|meeting)\b/.test(m)
-  ) {
-    return "external_tool_query";
-  }
-
-  if (
+    /\b(crea|agrega)\s+(un|una)\s+(evento|cita|meeting)\b/.test(m) ||
     m.includes("calendario") ||
     m.includes("agenda") ||
     m.includes("eventos") ||
@@ -84,7 +74,7 @@ export function routeIntent(message: string): Intent {
     m.includes("qué tengo") ||
     m.includes("que tengo")
   ) {
-    return "calendar_lookup";
+    return "external_tool_query";
   }
 
   if (
