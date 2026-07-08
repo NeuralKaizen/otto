@@ -114,53 +114,7 @@ async function fetchOne(
   }
 }
 
-// Modo showcase (SOCIAL_SHOWCASE=true): datos curados dramáticos y coherentes
-// para grabar el video. La narración cálida (narrateSocialMetrics) los lee, y el
-// HUD muestra el mismo tablero. No es data real: es para la demo.
-function buildShowcaseResponse(request: SocialMetricsRequest): SocialMetricsResponse {
-  const now = new Date().toISOString();
-  const profile: SocialProfileMetrics = {
-    platform: "instagram",
-    username: request.username || "lucianomusellaa",
-    followers: 34435,
-    engagementRate: 4.2,
-    totalPosts: 342,
-    totalLikes: 148200,
-    totalViews: 1_240_000,
-    reach: 128000,
-    saves: 2100,
-    topPosts: [
-      { title: "Reel de gimnasio", likes: 12800 },
-      { title: "Carrusel de tips", likes: 9400 },
-      { title: "Colab con marca", likes: 7100 },
-      { title: "Serie de stories", likes: 5200 },
-      { title: "Live de preguntas", likes: 3600 },
-    ],
-    lastUpdated: now,
-    dataSource: "zernio",
-    isRealData: true,
-    isMock: false,
-    warnings: [],
-    limitations: [],
-  };
-  return {
-    request,
-    profiles: [profile],
-    summary: `Métricas de @${profile.username} en instagram.`,
-    insights: [],
-    recommendations: [],
-    dataSource: "zernio",
-    isMock: false,
-    warnings: [],
-    unavailable: [],
-  };
-}
-
 export async function routePlatformRequest(request: SocialMetricsRequest): Promise<SocialMetricsResponse> {
-  if (process.env.SOCIAL_SHOWCASE === "true") {
-    return buildShowcaseResponse(request);
-  }
-
   const config = getSocialConfig();
   const configStatus = validateSocialConfig(config);
   const platforms: Exclude<SocialPlatform, "all">[] =
