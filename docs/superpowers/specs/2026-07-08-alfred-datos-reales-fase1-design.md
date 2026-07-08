@@ -58,10 +58,14 @@ Aprendido del showcase, donde datos falsos venían etiquetados como
 - **Zernio (social):** al sacar `SOCIAL_SHOWCASE`, el adaptador real
   (`zernioAdapter.ts:307`) toma el control. `ZERNIO_API_KEY` ya está SET. Validar la API
   real con la key antes de darla por funcional.
-- **Notion:** agregar al `.env` `ENABLE_NOTION=true`, `NOTION_API_KEY`, y los IDs de
-  bases (`NOTION_TASKS_DATABASE_ID` ya SET; falta `NOTION_PROJECTS_DATABASE_ID`).
-  Habilita `notion_project_intelligence` (API directa) y `notion_workspace_assistant`
-  (vía Composio).
+- **Notion (todo por Composio — decidido 2026-07-08):** Notion se conecta una sola vez
+  vía OAuth en el panel de Composio; **no** se usa `NOTION_API_KEY` cruda ni la API
+  directa. Al `.env` solo se agrega `ENABLE_NOTION=true`. `notion_workspace_assistant`
+  ya usa Composio. **`notion_project_intelligence` se refactoriza** para consultar por
+  Composio en vez del adaptador directo (`notionRealAdapter.ts` / `notionClient.ts`), de
+  modo que haya un único mecanismo de conexión. Los IDs de base (`NOTION_TASKS_DATABASE_ID`
+  ya SET; falta el de proyectos) siguen siendo necesarios para saber qué bases consultar,
+  pero el acceso va por Composio.
 - **Gmail/Calendar (Composio):** ya es real (`composioRealAdapter.ts:77`); requiere
   cuentas conectadas en Composio (`COMPOSIO_API_KEY` SET, toolkits
   `notion,gmail,googlecalendar`). Verificar que las cuentas estén conectadas.
@@ -81,10 +85,14 @@ Por cada integración, manejar una consulta real end-to-end y **confirmar que vu
 dato real, no mock**, chequeando `dataSource`/`isMock` en el resultado. Ninguna
 integración se declara "funciona" sin esta prueba observada.
 
-## Datos que debe proveer el usuario (bloqueantes de implementación)
-- `NOTION_API_KEY` + `NOTION_PROJECTS_DATABASE_ID` (y confirmar el tasks DB id).
-- Confirmar que Zernio tiene una cuenta con datos accesibles vía la key actual.
-- Confirmar que Gmail y Google Calendar están conectados en la cuenta de Composio.
+## Datos/acciones que debe proveer el usuario (bloqueantes de implementación)
+- **Composio:** conectar **Notion**, **Gmail** y **Google Calendar** vía OAuth en el
+  panel de Composio (app.composio.dev) para el user `default`. Sin estas conexiones, esas
+  integraciones caen a mock.
+- **Notion:** el `NOTION_PROJECTS_DATABASE_ID` (el de tareas ya está SET; confirmar que
+  es correcto).
+- **Zernio:** confirmar que hay cuenta con datos accesibles vía la key actual (usuario
+  `lucianomusellaa`).
 
 ## Fuera de alcance
 - Migración a tool-calling / function-calling (Fase 2).
