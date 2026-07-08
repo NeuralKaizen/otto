@@ -11,7 +11,6 @@ import { createPlan } from "./planner.js";
 import { executePlan } from "./executor.js";
 import type { SkillRegistry } from "./executor.js";
 import { buildPrompt } from "./promptBuilder.js";
-import { narrateSocialMetrics } from "./narrateSocial.js";
 import { createProvider, getProviderInfo } from "./model/providerFactory.js";
 import { isCancelled, clearCancelled } from "./cancellationRegistry.js";
 import {
@@ -237,26 +236,6 @@ export async function runAgent(input: AgentInput, emit: EventEmitter): Promise<A
     emit({ type: "status", status: "idle", timestamp: ts() });
     console.log(`[agent] run cancelled (approval rejected)`);
     return { conversationId, assistantMessageId: savedMsg.id, finalContent: content };
-  }
-
-  // Métricas sociales: narración cálida determinística (voz de mayordomo).
-  // La intención se detecta por keywords, no por el LLM, así que esto funciona
-  // aunque el proveedor LLM esté sin cuota. Los widgets ya salieron por
-  // tool_call_completed; esto es solo lo que Alfred DICE.
-  if (executedSkillName === "social_metrics_lookup") {
-    const narration = narrateSocialMetrics(rawSkillResult);
-    if (narration) {
-      emit({ type: "status", status: "responding", timestamp: ts() });
-      const msgId = randomUUID();
-      const providerInfo = getProviderInfo();
-      emit({ type: "message_started", messageId: msgId, provider: providerInfo.active, model: providerInfo.model ?? undefined, timestamp: ts() });
-      emit({ type: "message_delta", messageId: msgId, delta: narration, timestamp: ts() });
-      emit({ type: "message_done", messageId: msgId, content: narration, provider: providerInfo.active, model: providerInfo.model ?? undefined, timestamp: ts() });
-      emit({ type: "status", status: "done", timestamp: ts() });
-      const savedMsg = await addMessage(conversationId, "assistant", narration);
-      console.log(`[agent] social metrics narrated (deterministic)`);
-      return { conversationId, assistantMessageId: savedMsg.id, finalContent: narration };
-    }
   }
 
   emit({ type: "status", status: "responding", timestamp: ts() });
