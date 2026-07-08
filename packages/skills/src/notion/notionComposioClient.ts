@@ -18,6 +18,42 @@ import type {
 
 type ClientSource = "composio_api" | "mock" | "none";
 
+export interface NotionComposioActionResult {
+  successful: boolean;
+  data: unknown;
+  error?: string;
+}
+
+/**
+ * Low-level Composio Notion action executor, reused by adapters that need a
+ * specific action slug (e.g. `notionComposioQueryAdapter.ts` for
+ * `NOTION_QUERY_DATABASE`) without going through the intent-parsing flow in
+ * `executeDedicatedNotionAction`. Reuses `getComposioClient` so auth/caching
+ * isn't duplicated. Mirrors the exact `client.tools.execute(...)` call and
+ * response shape (`successful` / `data` / `error`) used by `executeReal`
+ * below (see the `client.tools.execute` call further down in this file).
+ */
+export async function executeNotionComposioAction(
+  actionSlug: string,
+  args: Record<string, unknown>,
+  config: NotionWorkspaceConfig = getNotionWorkspaceConfig()
+): Promise<NotionComposioActionResult> {
+  const client = await getComposioClient(process.env.COMPOSIO_API_KEY);
+  if (!client) {
+    return { successful: false, data: undefined, error: "missing_api_key" };
+  }
+
+  try {
+    const response = await client.tools.execute(actionSlug, {
+      arguments: args,
+      userId: config.composioUserId,
+    });
+    return { successful: response.successful, data: response.data, error: response.error ?? undefined };
+  } catch (err) {
+    return { successful: false, data: undefined, error: safeErrorMessage(err) };
+  }
+}
+
 interface NotionClientResult {
   success: boolean;
   source: ClientSource;

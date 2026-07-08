@@ -83,6 +83,17 @@ export function isNotionRealAdapterAvailable(config: NotionConfig = getNotionCon
   return config.enabled && Boolean(config.apiKey);
 }
 
+/**
+ * True when Notion is enabled and Composio is configured (COMPOSIO_API_KEY +
+ * COMPOSIO_USER_ID + ENABLE_COMPOSIO), without requiring a raw NOTION_API_KEY.
+ * Gate for `notionComposioQueryAdapter`, the sole real-data path for
+ * `notion_project_intelligence` — Notion connects 100% via Composio OAuth.
+ */
+export function isNotionComposioQueryAvailable(config: NotionConfig = getNotionConfig()): boolean {
+  const ws = getNotionWorkspaceConfig();
+  return config.enabled && ws.composioConfigured;
+}
+
 export function getNotionWorkspaceConfig(): NotionWorkspaceConfig {
   const provider = (env("NOTION_PROVIDER") ?? "composio").toLowerCase();
   const fallbackApproval = parseNotionEnvBoolean("COMPOSIO_REQUIRE_APPROVAL_FOR_WRITE", true);

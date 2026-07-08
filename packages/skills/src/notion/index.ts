@@ -10,6 +10,7 @@ export * from "./notionProjectSkill.js";
 export * from "./notionWorkspaceSkill.js";
 export * from "./adapters/notionMockAdapter.js";
 export * from "./adapters/notionRealAdapter.js";
+export * from "./adapters/notionComposioQueryAdapter.js";
 export * from "./analysis/summarizeTasks.js";
 export * from "./analysis/summarizeProjects.js";
 export * from "./analysis/computeProjectProgress.js";

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test --experimental-test-module-mocks \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@wattson/memory": "workspace:*",

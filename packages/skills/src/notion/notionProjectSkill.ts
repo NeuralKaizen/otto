@@ -7,8 +7,8 @@ import type {
 } from "./types.js";
 import { parseNotionQuery } from "./notionParser.js";
 import { notionMockAdapter } from "./adapters/notionMockAdapter.js";
-import { notionRealAdapter } from "./adapters/notionRealAdapter.js";
-import { isNotionTasksAvailable, isNotionProjectsAvailable } from "./notionConfig.js";
+import { notionComposioQueryAdapter } from "./adapters/notionComposioQueryAdapter.js";
+import { getNotionConfig, isNotionComposioQueryAvailable } from "./notionConfig.js";
 import { normalizeName } from "./notionNormalizer.js";
 import { summarizeProject } from "./analysis/summarizeProjects.js";
 import { summarizeTasks } from "./analysis/summarizeTasks.js";
@@ -45,12 +45,12 @@ function todayISO(): string {
 async function loadTasks(
   request: NotionProjectIntelligenceRequest
 ): Promise<{ tasks: NormalizedNotionTask[]; dataSource: DataSource; limitations: string[] }> {
-  if (!isNotionTasksAvailable()) {
+  if (!isNotionComposioQueryAvailable() || !getNotionConfig().tasksDatabaseId) {
     return { tasks: await notionMockAdapter.queryTasks(request), dataSource: "mock", limitations: [] };
   }
 
   try {
-    const tasks = await notionRealAdapter.queryTasks(request);
+    const tasks = await notionComposioQueryAdapter.queryTasks(request);
     return { tasks, dataSource: "notion_api", limitations: [] };
   } catch (err) {
     const message = err instanceof NotionQueryError ? err.message : String(err);
@@ -66,12 +66,12 @@ async function loadTasks(
 async function loadProjects(
   request: NotionProjectIntelligenceRequest
 ): Promise<{ projects: NormalizedNotionProject[]; dataSource: DataSource; limitations: string[] }> {
-  if (!isNotionProjectsAvailable()) {
+  if (!isNotionComposioQueryAvailable() || !getNotionConfig().projectsDatabaseId) {
     return { projects: await notionMockAdapter.queryProjects(request), dataSource: "mock", limitations: [] };
   }
 
   try {
-    const projects = await notionRealAdapter.queryProjects(request);
+    const projects = await notionComposioQueryAdapter.queryProjects(request);
     return { projects, dataSource: "notion_api", limitations: [] };
   } catch (err) {
     const message = err instanceof NotionQueryError ? err.message : String(err);
@@ -196,7 +196,11 @@ function buildClarificationResponse(
     insights: [],
     recommendations,
     limitations: [],
-    dataSource: isNotionTasksAvailable() || isNotionProjectsAvailable() ? "notion_api" : "mock",
+    dataSource:
+      isNotionComposioQueryAvailable() &&
+      (Boolean(getNotionConfig().tasksDatabaseId) || Boolean(getNotionConfig().projectsDatabaseId))
+        ? "notion_api"
+        : "mock",
   };
 }
 
