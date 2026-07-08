@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { getProviderInfo } from "@wattson/agent-core";
 import {
   getSocialRuntimeState,
-  isNotionRealAdapterAvailable,
+  isNotionComposioQueryAvailable,
   getComposioConfig,
   isComposioRealAdapterAvailable,
   getSocialConfig,
@@ -76,7 +76,7 @@ export function healthRoutes(app: FastifyInstance): void {
         zernioReadOnly: socialConfig.zernioReadOnlyMode,
         notionProjectIntelligence: env.ENABLE_NOTION,
         notionEnabled: notionStatus.enabled,
-        notionRealAdapterAvailable: isNotionRealAdapterAvailable(),
+        notionComposioAvailable: isNotionComposioQueryAvailable(),
         notionDedicatedSkill: true,
         notionProvider: notionStatus.provider,
         notionMode: notionRuntime.lastKnownMode ?? (notionStatus.configured ? "real" : notionConfig.fallbackToMock ? "mock" : "unavailable"),
