@@ -2,15 +2,17 @@ import type { LLMProvider, ChatInput, LLMChunk, LLMResponse } from "./types.js";
 
 const TIMEOUT_MS = 30_000;
 
-export function createOpenAIProvider(apiKey: string, model: string): LLMProvider {
+export function createOpenAIProvider(apiKey: string, model: string, baseURL?: string): LLMProvider {
   // Client is created lazily to avoid import-time errors if the package is missing.
   // The API key is captured in closure — never logged.
+  // baseURL lets us point the OpenAI-compatible client at a different gateway
+  // (e.g. OpenRouter: https://openrouter.ai/api/v1) without changing the call sites.
   let _client: import("openai").OpenAI | null = null;
 
   async function getClient(): Promise<import("openai").OpenAI> {
     if (!_client) {
       const { default: OpenAI } = await import("openai");
-      _client = new OpenAI({ apiKey, timeout: TIMEOUT_MS });
+      _client = new OpenAI({ apiKey, timeout: TIMEOUT_MS, ...(baseURL ? { baseURL } : {}) });
     }
     return _client;
   }

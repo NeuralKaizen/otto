@@ -29,10 +29,12 @@ export function createProvider(): LLMProvider {
   const providerName = process.env.LLM_PROVIDER ?? "mock";
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  // OpenAI-compatible gateway (e.g. OpenRouter). Empty → real OpenAI.
+  const baseURL = process.env.OPENAI_BASE_URL || undefined;
 
   if (enableReal && providerName === "openai" && apiKey) {
-    console.log("[provider] Using OpenAI provider with mock fallback");
-    const openaiProvider = createOpenAIProvider(apiKey, model);
+    console.log(`[provider] Using OpenAI-compatible provider (${baseURL ?? "api.openai.com"}) with mock fallback`);
+    const openaiProvider = createOpenAIProvider(apiKey, model, baseURL);
     activeProvider = createFallbackProvider(openaiProvider, mockProvider);
     activeProviderInfo = {
       active: "openai",
