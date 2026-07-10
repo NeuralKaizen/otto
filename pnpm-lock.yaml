@@ -221,8 +221,8 @@ importers:
   packages/skills:
     dependencies:
       '@composio/core':
-        specifier: ^0.10.0
-        version: 0.10.0(ws@8.21.0)(zod@3.25.76)
+        specifier: ^0.13.1
+        version: 0.13.1(ws@8.21.0)(zod@3.25.76)
       '@notionhq/client':
         specifier: ^2.2.15
         version: 2.3.0
@@ -367,16 +367,16 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
-  '@composio/client@0.1.0-alpha.72':
-    resolution: {integrity: sha512-2WYXgdlMvhoaJCsaSfyMAYGQ2tS5l2Fqdh2cMRqNi8NybIoOkFZy2ApBJJOoQwqfpUr41VymMW6FtiNQm7JavQ==}
+  '@composio/client@0.1.0-alpha.74':
+    resolution: {integrity: sha512-/EHJsFxCpWfRxNvXURRrGVZfJSltSpN4Gkd9M9Cl5gPOirG+NpbXf2B8d4B72H87m7cnOguMKjOH42ogQ84/Ww==}
 
-  '@composio/core@0.10.0':
-    resolution: {integrity: sha512-dG2BKF4NRiE8HHDzWLLgjMMo3FU4NJ6SxR961EpdLWWEKhkl+yP/mZlIN7p/4WnCR/fuDBKH1Qh+7kBdcHmEHA==}
+  '@composio/core@0.13.1':
+    resolution: {integrity: sha512-bC64PJG3RBeuezihfZV/9qJMd1LyzUEFN1tVHTWh32n/muUMr5I33nN6Mezhtkl4+ffBJ8IZ/mNt9tEQKFB/sw==}
     peerDependencies:
       zod: ^3.25 || ^4
 
-  '@composio/json-schema-to-zod@0.1.20':
-    resolution: {integrity: sha512-d4V34itLrUWG/VBh7ciznKcxF/T22MBLHmuEzHoX0zsBOHsUmjYz5qtDh20S2p3FE+HHvLZxpXiv8yfdd4yI+Q==}
+  '@composio/json-schema-to-zod@0.2.0':
+    resolution: {integrity: sha512-P7ym7+1NCN2cDVlSOGTINY6KjZ/d162uc+0LChYcy3d5RAAacgHiGU7ZJF+5pUJHbIivsfAC/4PdjVdsfmHdeA==}
     peerDependencies:
       zod: '>=3.25.76 <5'
 
@@ -2509,6 +2509,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   set-cookie-parser@2.7.2:
     resolution: {integrity: sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==}
 
@@ -3064,23 +3069,23 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@composio/client@0.1.0-alpha.72': {}
+  '@composio/client@0.1.0-alpha.74': {}
 
-  '@composio/core@0.10.0(ws@8.21.0)(zod@3.25.76)':
+  '@composio/core@0.13.1(ws@8.21.0)(zod@3.25.76)':
     dependencies:
-      '@composio/client': 0.1.0-alpha.72
-      '@composio/json-schema-to-zod': 0.1.20(zod@3.25.76)
+      '@composio/client': 0.1.0-alpha.74
+      '@composio/json-schema-to-zod': 0.2.0(zod@3.25.76)
       '@types/json-schema': 7.0.15
-      chalk: 4.1.2
       openai: 6.42.0(ws@8.21.0)(zod@3.25.76)
+      picocolors: 1.1.1
       pusher-js: 8.5.0
-      semver: 7.8.2
+      semver: 7.8.5
       zod: 3.25.76
       zod-to-json-schema: 3.25.2(zod@3.25.76)
     transitivePeerDependencies:
       - ws
 
-  '@composio/json-schema-to-zod@0.1.20(zod@3.25.76)':
+  '@composio/json-schema-to-zod@0.2.0(zod@3.25.76)':
     dependencies:
       zod: 3.25.76
 
@@ -4963,6 +4968,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.8.2: {}
+
+  semver@7.8.5: {}
 
   set-cookie-parser@2.7.2: {}
 

@@ -77,6 +77,9 @@ class ComposioRealAdapter implements ComposioAdapter {
       const response = await client.tools.execute(request.action, {
         arguments: request.params,
         userId: request.userId ?? config.userId,
+        // @composio/core >=0.11 exige este flag para ejecutar con la versión "latest"
+        // del toolkit; sin él Gmail/Calendar/Notion lanzan ComposioToolVersionRequiredError.
+        dangerouslySkipVersionCheck: true,
       });
 
       if (!response.successful) {

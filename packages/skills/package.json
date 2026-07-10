@@ -12,10 +12,10 @@
     "test": "tsx --test --experimental-test-module-mocks \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@wattson/memory": "workspace:*",
-    "@wattson/shared": "workspace:*",
+    "@composio/core": "^0.13.1",
     "@notionhq/client": "^2.2.15",
-    "@composio/core": "^0.10.0"
+    "@wattson/memory": "workspace:*",
+    "@wattson/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

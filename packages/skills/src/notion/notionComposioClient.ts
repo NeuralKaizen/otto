@@ -47,6 +47,10 @@ export async function executeNotionComposioAction(
     const response = await client.tools.execute(actionSlug, {
       arguments: args,
       userId: config.composioUserId,
+      // @composio/core >=0.11 rechaza la versión "latest" en ejecución manual salvo
+      // este flag. Sin él, toda acción lanza ComposioToolVersionRequiredError.
+      // Equivale al comportamiento de la API REST v3 (siempre resuelve a "latest").
+      dangerouslySkipVersionCheck: true,
     });
     return { successful: response.successful, data: response.data, error: response.error ?? undefined };
   } catch (err) {
@@ -395,6 +399,7 @@ async function executeReal(
       const response = await client.tools.execute(actionSlug, {
         arguments: args,
         userId: config.composioUserId,
+        dangerouslySkipVersionCheck: true, // ver nota en executeNotionComposioAction
       });
 
       if (!response.successful) {
